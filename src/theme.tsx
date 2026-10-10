@@ -91,43 +91,19 @@ export function useTheme() {
 }
 
 export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
-  const { mode, resolved, setMode } = useTheme();
+  const { mode, setMode } = useTheme();
 
-  const options: Array<{
-    value: ThemeMode;
-    label: string;
-    icon: typeof Sun;
-    activeIconColor: string;
-    activeGlow: string;
-  }> = [
-    {
-      value: 'light',
-      label: 'Light',
-      icon: Sun,
-      activeIconColor: 'text-amber-400 dark:text-amber-300',
-      activeGlow: 'shadow-[0_0_12px_rgba(251,191,36,0.35)]',
-    },
-    {
-      value: 'dark',
-      label: 'Dark',
-      icon: Moon,
-      activeIconColor: 'text-brand',
-      activeGlow: 'shadow-[0_0_12px_rgba(255,94,104,0.35)]',
-    },
-    {
-      value: 'system',
-      label: 'System',
-      icon: Monitor,
-      activeIconColor: 'text-cyan-400 dark:text-cyan-300',
-      activeGlow: 'shadow-[0_0_12px_rgba(34,211,238,0.35)]',
-    },
+  const options: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
+    { value: 'light', label: 'Light', icon: Sun },
+    { value: 'dark', label: 'Dark', icon: Moon },
+    { value: 'system', label: 'System', icon: Monitor },
   ];
 
   return (
     <div
       role="radiogroup"
       aria-label="Theme selection"
-      className="group relative inline-flex items-center gap-1 rounded-xl border border-color-border/80 bg-color-input/70 p-1 shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-all duration-300 hover:border-color-border-strong"
+      className="inline-flex items-center gap-0.5 rounded-xl border border-color-border bg-color-input p-0.5"
     >
       {options.map((opt) => {
         const Icon = opt.icon;
@@ -139,27 +115,15 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
             role="radio"
             aria-checked={active}
             aria-label={`${opt.label} mode`}
-            title={`${opt.label} theme (resolved: ${resolved})`}
             onClick={() => setMode(opt.value)}
-            className={`relative flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold tracking-tight transition-all duration-200 ease-out active:scale-[0.94] ${
+            className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold transition ${
               active
-                ? `bg-color-surface-elevated text-forest ${opt.activeGlow} shadow-[0_2px_8px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.16)] ring-1 ring-color-border-strong`
-                : 'text-sage hover:bg-color-hover/80 hover:text-forest'
+                ? 'bg-color-surface-elevated text-brand shadow-sm ring-1 ring-color-border'
+                : 'text-sage hover:text-forest'
             }`}
           >
-            <Icon
-              size={13}
-              className={`shrink-0 transition-transform duration-200 ${
-                active ? `${opt.activeIconColor} scale-105` : 'text-sage group-hover:text-forest/70'
-              }`}
-            />
-            {!compact && <span className="hidden sm:inline-block leading-none">{opt.label}</span>}
-            {active && (
-              <span
-                className="absolute -top-0.5 right-1 h-1 w-1 rounded-full bg-brand"
-                style={{ boxShadow: '0 0 6px #FF5E68' }}
-              />
-            )}
+            <Icon size={13} />
+            {!compact && <span className="hidden sm:inline">{opt.label}</span>}
           </button>
         );
       })}

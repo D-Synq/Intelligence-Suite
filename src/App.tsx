@@ -140,21 +140,24 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
             <div className="flex items-center gap-2"><label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border border-dashed dsynq-border px-3 py-2 text-xs text-sage transition hover:border-brand/50 hover:text-forest"><Upload size={14} /> <span className="truncate">{masterFile?.name ?? 'Upload Master Data.xlsx'}</span><input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => setMasterFile(event.target.files?.[0] ?? null)} /></label><button onClick={uploadMasterFile} disabled={!masterFile || loading !== null} className="dsynq-btn-secondary rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40">Index</button></div>
           </div>
         )}
-        <label
+        <div
           onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
-          className={`dsynq-dropzone relative block cursor-pointer !p-3 transition ${dragging ? 'is-dragging' : ''}`}
+          className={`dsynq-dropzone relative block !p-3 transition ${dragging ? 'is-dragging' : ''}`}
         >
-          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleSalesChange} />
           <div className="flex min-w-[210px] items-center gap-3">
             <div className="rounded-lg bg-dsynq-surface p-2.5 text-sage"><FileSpreadsheet size={18} /></div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-forest">{file ? file.name : 'Click or drop weekly sales file'}</p>
+              <p className="text-xs font-medium text-forest">{file ? file.name : 'Drop weekly sales file'}</p>
               <p className="mt-0.5 text-[10px] text-sage">XLSX, XLS or CSV</p>
             </div>
+            <label className="cursor-pointer text-brand transition active:scale-90 hover:text-brand-hover">
+              <Upload size={17} />
+              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleSalesChange} />
+            </label>
           </div>
-        </label>
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-dsynq-border pt-4">
         <div className="flex items-center gap-2 text-xs text-sage"><ShieldCheck size={15} className="text-brand" /> Calculations stay server-side for 50k+ records</div>
@@ -317,8 +320,8 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
       </div>
       <section className="dsynq-card dsynq-card-rim relative z-10 w-full max-w-md p-6 sm:p-8">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-brand/35 bg-black shadow-xl" style={{ boxShadow: '0 0 28px -4px rgba(255, 94, 104, 0.45)' }}>
-            <img src="/brand/logo.png" alt="DSynq Logo" className="h-full w-full object-cover" />
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center overflow-hidden bg-transparent">
+            <img src="/brand/logo-transparent.png" alt="DSynq Logo" className="h-full w-full object-contain bg-transparent" />
           </div>
           <div className="brand-lockup text-center">
             <h1 className="software-name text-2xl font-bold tracking-tight text-forest">Welcome back<span className="heading-dot">.</span></h1>
@@ -384,8 +387,8 @@ function App() {
       <nav className="sticky top-0 z-40 border-b border-color-border bg-[var(--glass-background-elevated)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1536px] flex-wrap items-center justify-between gap-2.5 px-4 py-2.5 sm:px-6 lg:px-10">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-700/80 bg-black" style={{ boxShadow: '0 0 20px -4px rgba(255,94,104,0.45)' }}>
-              <img src="/brand/logo.png" alt="DSynq" className="h-full w-full object-cover" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden bg-transparent">
+              <img src="/brand/logo-transparent.png" alt="DSynq" className="h-full w-full object-contain bg-transparent" />
             </div>
             <div className="brand-lockup hidden sm:flex">
               <div className="flex items-center gap-2">
