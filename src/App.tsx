@@ -1,5 +1,5 @@
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ArrowDownToLine, BadgeIndianRupee, BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, Cloud, Database, FileSpreadsheet, Filter, Loader2, LogOut, RefreshCw, Search, ShieldCheck, ShieldX, Upload, Users, X, Wifi, FileUp } from 'lucide-react';
+import { ArrowDownToLine, BadgeIndianRupee, BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, Cloud, Database, FileSpreadsheet, Filter, Layers, Loader2, LogOut, RefreshCw, Search, ShieldCheck, ShieldX, Upload, Users, X, Wifi, FileUp } from 'lucide-react';
 import { downloadReport, processSales, switchDataSourceMode, syncGoogleSheet, uploadMaster } from '@/api';
 import { BatchValidator } from '@/components/BatchValidator';
 import { DSynqLogo } from '@/components/DSynqLogo';
@@ -147,8 +147,8 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
         </div>
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-brand">Payout command</p>
-          <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-forest">Commission intelligence<span className="heading-dot">.</span></h1>
-          <p className="mt-0.5 text-xs text-sage">Owned-tier capping, 2% TDS, and verified sales ledger</p>
+          <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-forest">Commission intelligence</h1>
+          <p className="mt-0.5 text-xs text-sage">powered by <strong className="font-semibold text-brand">DSynq</strong> · Owned-tier capping, 2% TDS, and verified sales ledger</p>
         </div>
       </div>
       <div className="flex items-center gap-3">
@@ -161,7 +161,7 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
 
     <section className="dsynq-card dsynq-card-rim mb-6 p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2"><Activity size={16} className="text-brand" /><h2 className="text-sm font-semibold text-forest">Data control center</h2></div>
+        <div className="flex items-center gap-2"><Layers size={16} className="text-brand" /><h2 className="text-sm font-semibold text-forest">Data control center</h2></div>
         <span className="hidden text-[10px] uppercase tracking-[.18em] text-sage sm:block">Secure ingestion layer</span>
       </div>
 
@@ -284,7 +284,17 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
       </div>
     </section>
 
-    <footer className="flex flex-col gap-2 py-6 text-[10px] uppercase tracking-[.16em] text-sage sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2"><div className="flex h-4 w-4 items-center justify-center overflow-visible"><DSynqLogo size="xs" interactive={false} className="h-3.5 w-3.5" /></div><span>DSynq Intelligence Suite</span></div><span>Owned-tier capping & 2% TDS ledger</span></footer>
+    <footer className="flex flex-col gap-2 py-6 text-[10px] uppercase tracking-[.16em] text-sage sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-2">
+        <div className="flex h-4 w-4 items-center justify-center overflow-visible">
+          <DSynqLogo size="xs" interactive={false} className="h-3.5 w-3.5" />
+        </div>
+        <span>DSynq Intelligence Suite</span>
+        <span className="text-sage/50">•</span>
+        <span className="normal-case">powered by <strong className="font-semibold text-brand">DSynq</strong></span>
+      </div>
+      <span>Owned-tier capping & 2% TDS ledger</span>
+    </footer>
     {selected && <Drawer row={selected} onClose={() => setSelected(null)} />}
   </div>;
 }
@@ -383,11 +393,12 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center overflow-visible bg-transparent">
             <DSynqLogo size="xl" interactive={false} className="h-16 w-16" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-forest">Welcome back<span className="heading-dot">.</span></h1>
-          <p className="mt-1 text-xs text-sage tracking-wider">
+          <p className="text-[11px] font-semibold uppercase tracking-[.2em] text-brand">Welcome back</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-forest">DSynq Intelligence Suite</h1>
+          <p className="mt-1.5 text-xs text-sage tracking-wider">
             powered by <strong className="font-semibold text-brand">DSynq</strong>
           </p>
-          <p className="mt-2 text-sm text-sage">Sign in to access the intelligence suite</p>
+          <p className="mt-2 text-xs text-sage">Sign in to access the commission &amp; payout intelligence suite</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block text-xs font-semibold text-forest">Login ID / Email<input value={loginId} onChange={(event) => { setLoginId(event.target.value); setError(''); }} type="text" autoComplete="username" placeholder="Enter your login ID" className="dsynq-input mt-2 w-full px-3 py-3 text-sm" /></label>
@@ -435,7 +446,10 @@ function App() {
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-visible rounded-xl border border-color-border bg-[var(--c-surface)] p-1.5 shadow-sm">
               <DSynqLogo size="sm" interactive={false} className="h-full w-full" />
             </div>
-            <div className="min-w-0 flex-1"><p className="text-xs font-semibold text-forest">Install DSynq Ops</p><p className="text-[10px] text-sage">Add to home screen for offline access</p></div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-forest">Install DSynq</p>
+              <p className="text-[10px] text-sage">powered by <strong className="font-semibold text-brand">DSynq</strong></p>
+            </div>
             <button onClick={promptInstall} className="dsynq-btn-primary rounded-lg px-3 py-1.5 text-[11px] font-semibold">Install</button>
             <button onClick={dismiss} aria-label="Dismiss" className="rounded-lg p-1.5 text-sage transition hover:text-forest"><X size={15} /></button>
           </div>
@@ -447,9 +461,9 @@ function App() {
             <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-visible bg-transparent">
               <DSynqLogo size="md" interactive className="cursor-pointer" />
             </div>
-            <div className="hidden sm:flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-forest leading-tight">DSynq</span>
-              <span className="text-[10px] leading-tight text-sage tracking-wider">
+            <div className="flex flex-col">
+              <span className="text-xs sm:text-sm font-bold tracking-tight text-forest leading-tight">DSynq Intelligence Suite</span>
+              <span className="text-[9px] sm:text-[10px] leading-tight text-sage tracking-wider">
                 powered by <strong className="font-semibold text-brand">DSynq</strong>
               </span>
             </div>
@@ -490,8 +504,8 @@ function App() {
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-brand">IFSC validator</p>
-              <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-forest">Bank verification workspace<span className="heading-dot">.</span></h1>
-              <p className="mt-0.5 text-xs text-sage">Batch-check bank branches before payout processing</p>
+              <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-forest">Bank verification workspace</h1>
+              <p className="mt-0.5 text-xs text-sage">powered by <strong className="font-semibold text-brand">DSynq</strong> · Batch-check bank branches before payout processing</p>
             </div>
           </div>
           <BatchValidator />

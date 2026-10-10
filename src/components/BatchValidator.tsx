@@ -167,7 +167,10 @@ export function BatchValidator() {
           <div className="flex h-7 w-7 items-center justify-center overflow-visible">
             <DSynqLogo size="xs" interactive={false} className="h-4 w-4" />
           </div>
-          <h2 className="text-sm font-semibold text-forest">Excel IFSC Batch Validator<span className="heading-dot">.</span></h2>
+          <div>
+            <h2 className="text-sm font-semibold text-forest">Excel IFSC Batch Validator</h2>
+            <p className="text-[10px] text-sage">powered by <strong className="font-semibold text-brand">DSynq</strong></p>
+          </div>
         </div>
         <span className="hidden text-[10px] uppercase tracking-[.18em] text-sage sm:block">
           Razorpay IFSC API

@@ -89,6 +89,6 @@
   <g transform="translate(90, 520)">
     <line x1="0" y1="0" x2="1020" y2="0" stroke="#1E2333" stroke-width="1.5"/>
     <text x="0" y="32" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="14" font-weight="500" fill="#64748B">Zero-Auth Client Engine • Real-time Spreadsheet Processing • PWA Ready</text>
-    <text x="1020" y="32" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="14" font-weight="700" fill="#FF4B55" text-anchor="end">DSYNQ OPS</text>
+    <text x="1020" y="32" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="14" font-weight="700" fill="#FF4B55" text-anchor="end">POWERED BY DSYNQ</text>
   </g>
 </svg>

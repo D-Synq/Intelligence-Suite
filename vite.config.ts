@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   server: {
     host: '0.0.0.0',
@@ -20,8 +19,8 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'dsynq-icon.svg', 'logo.png', 'og-image.png', 'brand/logo.png', 'brand/logo-transparent.png', 'brand/icon.svg'],
       manifest: {
         id: '/',
-        name: 'DSynq Payout & IFSC Command',
-        short_name: 'DSynq Ops',
+        name: 'DSynq Intelligence Suite',
+        short_name: 'DSynq',
         description: 'Zero-auth affiliate payout calculator and batch IFSC code validator',
         theme_color: '#0B1120',
         background_color: '#0B1120',
