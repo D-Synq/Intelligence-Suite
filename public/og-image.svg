@@ -5,26 +5,12 @@
       <stop offset="50%" stop-color="#08090C"/>
       <stop offset="100%" stop-color="#040507"/>
     </linearGradient>
-    <linearGradient id="crimsonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FF6B75"/>
-      <stop offset="50%" stop-color="#FF4B55"/>
-      <stop offset="100%" stop-color="#E02E39"/>
-    </linearGradient>
-    <linearGradient id="cyanGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#06B6D4"/>
-      <stop offset="60%" stop-color="#22D3EE"/>
-      <stop offset="100%" stop-color="#67E8F9"/>
-    </linearGradient>
     <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#181B26"/>
-      <stop offset="100%" stop-color="#0F111A"/>
+      <stop offset="100%" stop-color="#0C0E14"/>
     </linearGradient>
     <filter id="crimsonGlow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="40" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-    <filter id="cyanGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="30" result="blur"/>
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
@@ -32,8 +18,8 @@
   <!-- Canvas Background -->
   <rect width="1200" height="630" fill="url(#bgGrad)"/>
 
-  <!-- Tech Grid Background Pattern -->
-  <g opacity="0.05" stroke="#FFFFFF" stroke-width="1">
+  <!-- Subtle Grid Accent -->
+  <g opacity="0.04" stroke="#FFFFFF" stroke-width="1">
     <line x1="0" y1="105" x2="1200" y2="105"/>
     <line x1="0" y1="210" x2="1200" y2="210"/>
     <line x1="0" y1="315" x2="1200" y2="315"/>
@@ -46,32 +32,35 @@
     <line x1="1000" y1="0" x2="1000" y2="630"/>
   </g>
 
-  <!-- Ambient Bloom Orbs -->
-  <circle cx="220" cy="180" r="280" fill="#FF4B55" opacity="0.14" filter="url(#crimsonGlow)"/>
-  <circle cx="1020" cy="480" r="260" fill="#06B6D4" opacity="0.12" filter="url(#cyanGlow)"/>
+  <!-- Ambient Coral Glow -->
+  <circle cx="230" cy="285" r="260" fill="#FF4B55" opacity="0.16" filter="url(#crimsonGlow)"/>
+  <circle cx="1020" cy="460" r="240" fill="#22D3EE" opacity="0.10" filter="url(#crimsonGlow)"/>
 
-  <!-- Left: Stylized Emblem Card -->
-  <rect x="90" y="155" width="260" height="260" rx="44" fill="url(#cardGrad)" stroke="#2A2F40" stroke-width="2"/>
-  
-  <!-- Emblem internal glow -->
-  <circle cx="220" cy="285" r="90" fill="#FF4B55" opacity="0.2" filter="url(#crimsonGlow)"/>
-  
-  <!-- DSynq Logo Glyph inside Card -->
-  <g transform="translate(130, 195) scale(0.18)">
-    <rect x="290" y="270" width="104" height="484" rx="52" fill="url(#crimsonGrad)"/>
-    <path d="M 394 290 C 610 290, 770 380, 770 512 C 770 644, 610 734, 394 734" fill="none" stroke="url(#crimsonGrad)" stroke-width="104" stroke-linecap="round"/>
-    <path d="M 460 380 C 620 380, 670 440, 670 512 C 670 584, 620 644, 460 644" fill="none" stroke="url(#cyanGrad)" stroke-width="48" stroke-linecap="round"/>
-    <circle cx="460" cy="380" r="32" fill="#22D3EE"/>
-    <circle cx="460" cy="644" r="32" fill="#FF4B55"/>
-    <circle cx="670" cy="512" r="24" fill="#FFFFFF"/>
+  <!-- Left: Official Logo Card Container -->
+  <rect x="90" y="155" width="260" height="260" rx="44" fill="#000000" stroke="#252A3B" stroke-width="2"/>
+  <g transform="translate(90, 155) scale(0.2539)">
+    <path d="M 166 218 
+             L 540 218 
+             A 282 282 0 0 1 540 782 
+             L 166 782 
+             L 352 500 
+             Z 
+             M 354 346 
+             L 448 500 
+             L 354 654 
+             L 540 654 
+             A 154 154 0 0 0 540 346 
+             Z" 
+          fill="#FF4B55" 
+          fill-rule="evenodd"/>
   </g>
 
-  <!-- Right: Content & Typography -->
-  <!-- Top Category Pill -->
+  <!-- Right: Branding & Typography -->
+  <!-- Category Pill -->
   <g transform="translate(400, 145)">
-    <rect width="270" height="34" rx="17" fill="#151926" stroke="#252C3D" stroke-width="1.5"/>
-    <circle cx="20" cy="17" r="5" fill="#22D3EE"/>
-    <text x="36" y="22" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="12" font-weight="700" fill="#22D3EE" letter-spacing="2">DSYNQ OPERATIONS</text>
+    <rect width="250" height="34" rx="17" fill="#151926" stroke="#262E40" stroke-width="1.5"/>
+    <circle cx="20" cy="17" r="5" fill="#FF4B55"/>
+    <text x="36" y="22" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="12" font-weight="700" fill="#FF4B55" letter-spacing="2">OFFICIAL PLATFORM</text>
   </g>
 
   <!-- Main Headline -->
@@ -80,22 +69,19 @@
   <!-- Subheadline -->
   <text x="400" y="295" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="22" font-weight="500" fill="#94A3B8">Affiliate Payout Command &amp; Batch IFSC Verification</text>
 
-  <!-- Feature Pills Row -->
+  <!-- Feature Pills -->
   <g transform="translate(400, 340)">
-    <!-- Pill 1 -->
     <rect x="0" y="0" width="220" height="42" rx="10" fill="#121520" stroke="#FF4B55" stroke-opacity="0.3" stroke-width="1.5"/>
     <text x="18" y="26" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="14" font-weight="600" fill="#FFA5AB">Owned-Tier Capping</text>
 
-    <!-- Pill 2 -->
     <rect x="235" y="0" width="180" height="42" rx="10" fill="#121520" stroke="#22D3EE" stroke-opacity="0.3" stroke-width="1.5"/>
     <text x="253" y="26" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="14" font-weight="600" fill="#A5F3FC">2% TDS Ledger</text>
 
-    <!-- Pill 3 -->
     <rect x="430" y="0" width="260" height="42" rx="10" fill="#121520" stroke="#34D399" stroke-opacity="0.3" stroke-width="1.5"/>
     <text x="448" y="26" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="14" font-weight="600" fill="#6EE7B7">Batch Bank Verification</text>
   </g>
 
-  <!-- Bottom Details Bar -->
+  <!-- Bottom Bar -->
   <g transform="translate(90, 520)">
     <line x1="0" y1="0" x2="1020" y2="0" stroke="#1E2333" stroke-width="1.5"/>
     <text x="0" y="32" font-family="-apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif" font-size="14" font-weight="500" fill="#64748B">Zero-Auth Client Engine • Real-time Spreadsheet Processing • PWA Ready</text>

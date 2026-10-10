@@ -15,6 +15,21 @@
     <title>DSynq Intelligence Suite</title>
     <meta name="description" content="Zero-auth affiliate payout calculator and batch IFSC code validator" />
 
+    <!-- Instant Theme Initialization Script (Zero Flash) -->
+    <script>
+      (function() {
+        try {
+          var mode = localStorage.getItem('dsynq-theme-mode') || 'system';
+          var resolved = mode;
+          if (mode === 'system') {
+            resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', resolved);
+          document.documentElement.style.colorScheme = resolved;
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- Open Graph Metadata -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="DSynq Intelligence Suite" />

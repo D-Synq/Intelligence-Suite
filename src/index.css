@@ -5,68 +5,215 @@
 @tailwind utilities;
 
 /* ============================================================
-   DSynq OLED Glassmorphic Design System
-   Crimson ambient light depth — dark-only, no light mode
+   DSynq Premium Liquid Glass Design System
+   Coral Brand Edition (#FF5E68) — Dark, Light, & System Modes
    ============================================================ */
 
-:root {
-  --c-bg: #08090C;
-  --c-bg-ambient-1: rgba(255, 75, 85, 0.08);
-  --c-bg-ambient-2: rgba(255, 75, 85, 0.04);
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
 
-  --c-glass-bg: rgba(18, 20, 27, 0.7);
-  --c-glass-border: rgba(255, 255, 255, 0.07);
-  --c-glass-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  /* Official Brand Palette Tokens */
+  --color-primary: #FF5E68;
+  --color-primary-light: #FF858B;
+  --color-primary-hover: #F64F5B;
+  --color-primary-active: #E74755;
+
+  --color-background: #08090C;
+  --color-background-secondary: #101116;
+  --color-surface: #17181E;
+  --color-surface-elevated: #202127;
+
+  --color-text: #F5F5F7;
+  --color-text-secondary: #A1A3AF;
+  --color-text-muted: #818492;
+
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+
+  --glass-background: rgba(23, 24, 30, 0.68);
+  --glass-background-elevated: rgba(32, 33, 39, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.12);
+
+  --color-input: rgba(255, 255, 255, 0.045);
+  --color-hover: rgba(255, 255, 255, 0.055);
+  --color-selected: rgba(255, 94, 104, 0.14);
+
+  --color-success: #4ADE80;
+  --color-warning: #FBBF24;
+  --color-error: #F87171;
+  --color-info: #60A5FA;
+
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.24);
+  --color-focus-ring: rgba(255, 94, 104, 0.42);
+
+  /* Mapped design variables for components */
+  --c-bg: #08090C;
+  --c-bg-secondary: #101116;
+  --c-surface: #17181E;
+  --c-surface-elevated: #202127;
+  --c-surface-border: rgba(255, 255, 255, 0.10);
+
+  --c-glass-bg: rgba(23, 24, 30, 0.68);
+  --c-glass-border: rgba(255, 255, 255, 0.12);
+  --c-glass-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12), 0 20px 40px -15px rgba(0, 0, 0, 0.7);
   --c-glass-radius: 20px;
 
-  --c-surface: rgba(10, 11, 15, 0.85);
-  --c-surface-border: rgba(255, 255, 255, 0.06);
+  --c-text: #F5F5F7;
+  --c-text-secondary: #A1A3AF;
+  --c-text-muted: #818492;
 
-  --c-text: #FFFFFF;
-  --c-text-secondary: #7E8492;
+  --c-table-header-bg: rgba(16, 17, 22, 0.9);
+  --c-table-header-text: #A1A3AF;
+  --c-table-row-border: rgba(255, 255, 255, 0.07);
+  --c-table-row-hover: rgba(255, 94, 104, 0.05);
 
-  --c-table-header-bg: rgba(13, 15, 20, 0.9);
-  --c-table-header-text: #7E8492;
-  --c-table-row-border: rgba(255, 255, 255, 0.05);
-  --c-table-row-hover: rgba(255, 75, 85, 0.04);
+  --c-input-bg: rgba(23, 24, 30, 0.75);
+  --c-input-border: rgba(255, 255, 255, 0.10);
+  --c-input-text: #F5F5F7;
+  --c-input-placeholder: #5A5D6B;
+  --c-input-focus: #FF5E68;
 
-  --c-input-bg: rgba(12, 14, 18, 0.8);
-  --c-input-border: rgba(255, 255, 255, 0.06);
-  --c-input-text: #FFFFFF;
-  --c-input-focus: #FF4B55;
+  --c-brand: #FF5E68;
+  --c-brand-hover: #FF858B;
+  --c-brand-gradient: linear-gradient(135deg, #FF5E68 0%, #FF858B 100%);
+  --c-brand-bloom: 0 0 24px -2px rgba(255, 94, 104, 0.45);
+  --c-brand-bloom-hover: 0 0 32px -2px rgba(255, 94, 104, 0.65);
 
-  --c-brand: #FF4B55;
-  --c-brand-hover: #FF5E68;
-  --c-brand-gradient: linear-gradient(180deg, #FF5E68 0%, #FF4B55 100%);
-  --c-brand-bloom: 0 0 28px -4px rgba(255, 75, 85, 0.45);
-  --c-brand-bloom-hover: 0 0 32px -2px rgba(255, 75, 85, 0.6);
-
-  --c-btn-primary-bg: linear-gradient(180deg, #FF5E68 0%, #FF4B55 100%);
+  --c-btn-primary-bg: linear-gradient(135deg, #FF5E68 0%, #FF858B 100%);
   --c-btn-primary-text: #FFFFFF;
-  --c-btn-secondary-bg: rgba(255, 255, 255, 0.04);
-  --c-btn-secondary-border: rgba(255, 255, 255, 0.08);
-  --c-btn-secondary-text: #A0A6B2;
+  --c-btn-secondary-bg: rgba(255, 255, 255, 0.055);
+  --c-btn-secondary-border: rgba(255, 255, 255, 0.12);
+  --c-btn-secondary-text: #F5F5F7;
 
-  --c-dropzone-bg: rgba(10, 11, 15, 0.6);
-  --c-dropzone-border: rgba(255, 75, 85, 0.3);
-  --c-dropzone-hover-bg: rgba(255, 75, 85, 0.08);
+  --c-dropzone-bg: rgba(23, 24, 30, 0.55);
+  --c-dropzone-border: rgba(255, 94, 104, 0.35);
+  --c-dropzone-hover-bg: rgba(255, 94, 104, 0.08);
 
-  --c-success: #34D399;
-  --c-success-bg: rgba(52, 211, 153, 0.10);
-  --c-error: #FF4B55;
-  --c-error-bg: rgba(255, 75, 85, 0.12);
+  --c-success: #4ADE80;
+  --c-success-bg: rgba(74, 222, 128, 0.12);
+  --c-error: #F87171;
+  --c-error-bg: rgba(248, 113, 113, 0.14);
+  --c-warning: #FBBF24;
+  --c-warning-bg: rgba(251, 191, 36, 0.12);
+  --c-info: #60A5FA;
+  --c-info-bg: rgba(96, 165, 250, 0.12);
 
-  --c-scrollbar: rgba(255, 75, 85, 0.25);
-  --c-selection: rgba(255, 75, 85, 0.22);
+  --c-ambient-1: rgba(255, 94, 104, 0.08);
+  --c-ambient-2: rgba(255, 94, 104, 0.03);
+
+  --c-scrollbar: rgba(255, 94, 104, 0.3);
+  --c-selection: rgba(255, 94, 104, 0.25);
   --c-selection-text: #FFFFFF;
 }
 
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Official Brand Palette Tokens */
+  --color-primary: #FF5E68;
+  --color-primary-light: #FF858B;
+  --color-primary-hover: #F64F5B;
+  --color-primary-active: #E74755;
+
+  --color-background: #F5F6FA;
+  --color-background-secondary: #ECEEF4;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+
+  --color-text: #191A20;
+  --color-text-secondary: #666876;
+  --color-text-muted: #777988;
+
+  --color-border: rgba(25, 26, 32, 0.09);
+  --color-border-strong: rgba(25, 26, 32, 0.15);
+
+  --glass-background: rgba(255, 255, 255, 0.72);
+  --glass-background-elevated: rgba(255, 255, 255, 0.90);
+  --glass-border: rgba(255, 255, 255, 0.82);
+
+  --color-input: rgba(255, 255, 255, 0.78);
+  --color-hover: rgba(25, 26, 32, 0.045);
+  --color-selected: rgba(255, 94, 104, 0.10);
+
+  --color-success: #168447;
+  --color-warning: #946200;
+  --color-error: #C83242;
+  --color-info: #2463C8;
+
+  --shadow-glass: 0 8px 32px rgba(25, 26, 32, 0.06);
+  --color-focus-ring: rgba(255, 94, 104, 0.38);
+
+  /* Mapped design variables for components */
+  --c-bg: #F5F6FA;
+  --c-bg-secondary: #ECEEF4;
+  --c-surface: #FFFFFF;
+  --c-surface-elevated: #FFFFFF;
+  --c-surface-border: rgba(25, 26, 32, 0.10);
+
+  --c-glass-bg: rgba(255, 255, 255, 0.75);
+  --c-glass-border: rgba(255, 255, 255, 0.85);
+  --c-glass-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 14px 34px -4px rgba(25, 26, 32, 0.07);
+  --c-glass-radius: 20px;
+
+  --c-text: #191A20;
+  --c-text-secondary: #666876;
+  --c-text-muted: #777988;
+
+  --c-table-header-bg: rgba(240, 242, 248, 0.9);
+  --c-table-header-text: #666876;
+  --c-table-row-border: rgba(25, 26, 32, 0.07);
+  --c-table-row-hover: rgba(255, 94, 104, 0.045);
+
+  --c-input-bg: rgba(255, 255, 255, 0.88);
+  --c-input-border: rgba(25, 26, 32, 0.14);
+  --c-input-text: #191A20;
+  --c-input-placeholder: #8A8D9B;
+  --c-input-focus: #FF5E68;
+
+  --c-brand: #FF5E68;
+  --c-brand-hover: #FF858B;
+  --c-brand-gradient: linear-gradient(135deg, #FF5E68 0%, #FF858B 100%);
+  --c-brand-bloom: 0 0 20px -2px rgba(255, 94, 104, 0.35);
+  --c-brand-bloom-hover: 0 0 28px -2px rgba(255, 94, 104, 0.5);
+
+  --c-btn-primary-bg: linear-gradient(135deg, #FF5E68 0%, #FF858B 100%);
+  --c-btn-primary-text: #FFFFFF;
+  --c-btn-secondary-bg: rgba(25, 26, 32, 0.045);
+  --c-btn-secondary-border: rgba(25, 26, 32, 0.12);
+  --c-btn-secondary-text: #191A20;
+
+  --c-dropzone-bg: rgba(255, 255, 255, 0.65);
+  --c-dropzone-border: rgba(255, 94, 104, 0.40);
+  --c-dropzone-hover-bg: rgba(255, 94, 104, 0.06);
+
+  --c-success: #168447;
+  --c-success-bg: rgba(22, 132, 71, 0.10);
+  --c-error: #C83242;
+  --c-error-bg: rgba(200, 50, 66, 0.10);
+  --c-warning: #946200;
+  --c-warning-bg: rgba(148, 98, 0, 0.10);
+  --c-info: #2463C8;
+  --c-info-bg: rgba(36, 99, 200, 0.10);
+
+  --c-ambient-1: rgba(255, 94, 104, 0.04);
+  --c-ambient-2: rgba(255, 94, 104, 0.015);
+
+  --c-scrollbar: rgba(25, 26, 32, 0.2);
+  --c-selection: rgba(255, 94, 104, 0.18);
+  --c-selection-text: #191A20;
+}
+
+/* ============================================================
+   Base Setup
+   ============================================================ */
 :root {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   color: var(--c-text);
   background: var(--c-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 * { box-sizing: border-box; }
@@ -76,6 +223,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: var(--c-bg);
+  color: var(--c-text);
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 button, input, select, textarea { font: inherit; }
@@ -83,16 +232,18 @@ button { cursor: pointer; }
 ::selection { background: var(--c-selection); color: var(--c-selection-text); }
 
 /* ============================================================
-   Glass Cards — multi-layered elevated surfaces
+   Liquid Glass Surfaces
    ============================================================ */
-.dsynq-card {
+.glass-surface,
+.dsynq-card,
+.liquid-glass {
   background: var(--c-glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
   border: 1px solid var(--c-glass-border);
   border-radius: var(--c-glass-radius);
   box-shadow: var(--c-glass-shadow);
-  transition: all 0.3s ease;
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .dsynq-card-rim {
@@ -104,15 +255,18 @@ button { cursor: pointer; }
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, transparent 40%, transparent 60%, rgba(255, 75, 85, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, transparent 40%, transparent 60%, rgba(255, 94, 104, 0.12) 100%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
 }
+[data-theme="light"] .dsynq-card-rim::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, transparent 50%, rgba(25, 26, 32, 0.05) 100%);
+}
 
 /* ============================================================
-   Inputs — deep frosted containers with crimson focus
+   Inputs
    ============================================================ */
 .dsynq-input {
   background: var(--c-input-bg);
@@ -122,21 +276,21 @@ button { cursor: pointer; }
   outline: none;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.3s ease;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.25s ease, color 0.25s ease;
 }
-.dsynq-input::placeholder { color: #4A4F5A; }
+.dsynq-input::placeholder { color: var(--c-input-placeholder); }
 .dsynq-input:focus {
-  border-color: var(--c-input-focus);
-  box-shadow: 0 0 0 3px rgba(255, 75, 85, 0.2), 0 0 20px -3px rgba(255, 75, 85, 0.35);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring), 0 0 16px -2px rgba(255, 94, 104, 0.3);
 }
 
 select.dsynq-input option {
-  background: #0E0F13;
-  color: #FFFFFF;
+  background: var(--c-surface);
+  color: var(--c-text);
 }
 
 /* ============================================================
-   Buttons — crimson gradient primary, frosted secondary
+   Buttons
    ============================================================ */
 .dsynq-btn-primary {
   background: var(--c-btn-primary-bg);
@@ -145,7 +299,7 @@ select.dsynq-input option {
   border-radius: 12px;
   border: none;
   box-shadow: var(--c-brand-bloom);
-  transition: box-shadow 0.2s, transform 0.15s;
+  transition: box-shadow 0.2s, transform 0.15s, background 0.2s;
 }
 .dsynq-btn-primary:hover {
   box-shadow: var(--c-brand-bloom-hover);
@@ -153,9 +307,10 @@ select.dsynq-input option {
 }
 .dsynq-btn-primary:active { transform: translateY(0); }
 .dsynq-btn-primary:disabled {
-  background: rgba(255, 75, 85, 0.3);
+  background: rgba(255, 94, 104, 0.35);
   box-shadow: none;
   transform: none;
+  cursor: not-allowed;
 }
 
 .dsynq-btn-secondary {
@@ -165,35 +320,37 @@ select.dsynq-input option {
   border-radius: 12px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
 }
 .dsynq-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+  transform: translateY(-1px);
 }
+.dsynq-btn-secondary:active { transform: translateY(0); }
 
 /* ============================================================
-   Dropzone — frosted with crimson dashed border
+   Dropzone
    ============================================================ */
 .dsynq-dropzone {
   background: var(--c-dropzone-bg);
   border: 2px dashed var(--c-dropzone-border);
   border-radius: 16px;
-  padding: 2rem;
+  padding: 1.75rem;
   text-align: center;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  transition: border-color 0.2s, background 0.3s ease;
+  transition: border-color 0.2s, background 0.25s ease, box-shadow 0.2s;
 }
 .dsynq-dropzone:hover, .dsynq-dropzone.is-dragging {
-  border-color: var(--c-brand);
+  border-color: var(--color-primary);
   background: var(--c-dropzone-hover-bg);
-  box-shadow: inset 0 0 30px -10px rgba(255, 75, 85, 0.15);
+  box-shadow: inset 0 0 24px -6px rgba(255, 94, 104, 0.15);
 }
 
 /* ============================================================
-   Tables — glass frame, crimson hover
+   Tables
    ============================================================ */
 .dsynq-table-header {
   background: var(--c-table-header-bg);
@@ -209,89 +366,92 @@ select.dsynq-input option {
 .dsynq-table-row:hover { background: var(--c-table-row-hover); }
 
 /* ============================================================
-   Brand text — crimson with neon glow
+   Brand & Attribution
    ============================================================ */
 .brand {
-  color: #FF4B55;
+  color: var(--color-primary);
   font-weight: 800;
-  text-shadow: 0 0 12px rgba(255, 75, 85, 0.4);
+  text-shadow: 0 0 12px rgba(255, 94, 104, 0.35);
 }
 
-/* Heading terminal accent dot */
 .heading-dot {
   display: inline-block;
-  color: #FF4B55;
-  text-shadow: 0 0 10px rgba(255, 75, 85, 0.6);
+  color: var(--color-primary);
+  text-shadow: 0 0 10px rgba(255, 94, 104, 0.5);
   margin-left: 1px;
 }
 
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-attribution {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.brand-attribution-name {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
 /* ============================================================
-   Ambient background — persistent crimson atmosphere
+   Ambient background
    ============================================================ */
 .app-ambient {
   position: fixed;
   inset: 0;
   z-index: -10;
   background:
-    radial-gradient(900px circle at 50% -10%, rgba(255, 75, 85, 0.08), transparent 70%),
-    radial-gradient(600px circle at 90% 90%, rgba(255, 75, 85, 0.04), transparent 60%);
+    radial-gradient(900px circle at 50% -10%, var(--c-ambient-1), transparent 70%),
+    radial-gradient(600px circle at 90% 90%, var(--c-ambient-2), transparent 60%);
   pointer-events: none;
 }
 
 .login-ambient {
-  background: radial-gradient(750px circle at 50% -15%, rgba(255, 75, 85, 0.16), transparent 75%);
+  background: radial-gradient(750px circle at 50% -15%, var(--c-ambient-1), transparent 75%);
 }
 
 /* ============================================================
-   Legacy class aliases (keep existing Tailwind class names working)
+   Utility Overrides for Consistent Theming
    ============================================================ */
-.liquid-glass {
-  background: var(--c-glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--c-glass-border);
-  border-radius: var(--c-glass-radius);
-  box-shadow: var(--c-glass-shadow);
-  transition: all 0.3s ease;
-}
-
-/* Override Tailwind utility classes that reference old hardcoded values */
-.bg-white { background-color: var(--c-surface) !important; }
+.bg-canvas { background-color: var(--c-bg) !important; }
 .bg-dsynq-surface { background-color: var(--c-surface) !important; }
 .border-dsynq-border { border-color: var(--c-surface-border) !important; }
 .divide-dsynq-border > * + * { border-color: var(--c-table-row-border) !important; }
 .text-forest { color: var(--c-text) !important; }
 .text-sage { color: var(--c-text-secondary) !important; }
-.text-brand { color: var(--c-brand) !important; }
-.text-brand-hover { color: var(--c-brand-hover) !important; }
+.text-brand { color: var(--color-primary) !important; }
+.text-brand-hover { color: var(--color-primary-hover) !important; }
 .text-status-success { color: var(--c-success) !important; }
 .text-status-error { color: var(--c-error) !important; }
 .bg-status-successBg { background-color: var(--c-success-bg) !important; }
 .bg-status-errorBg { background-color: var(--c-error-bg) !important; }
-.bg-brand\/10 { background-color: rgba(255, 75, 85, 0.12) !important; }
-.border-brand\/20 { border-color: rgba(255, 75, 85, 0.25) !important; }
-.border-brand\/25 { border-color: rgba(255, 75, 85, 0.25) !important; }
-.border-brand\/50 { border-color: rgba(255, 75, 85, 0.5) !important; }
-.border-status-success\/25 { border-color: rgba(52, 211, 153, 0.25) !important; }
-.border-status-error\/25 { border-color: rgba(255, 75, 85, 0.3) !important; }
-.border-status-success\/20 { border-color: rgba(52, 211, 153, 0.20) !important; }
-.border-status-error\/20 { border-color: rgba(255, 75, 85, 0.20) !important; }
-.bg-status-success\/10 { background-color: rgba(52, 211, 153, 0.10) !important; }
-.bg-status-error\/10 { background-color: rgba(255, 75, 85, 0.10) !important; }
-.bg-brand\/5 { background-color: rgba(255, 75, 85, 0.06) !important; }
+.bg-brand\/10 { background-color: rgba(255, 94, 104, 0.12) !important; }
+.border-brand\/20 { border-color: rgba(255, 94, 104, 0.25) !important; }
+.border-brand\/25 { border-color: rgba(255, 94, 104, 0.25) !important; }
+.border-brand\/50 { border-color: rgba(255, 94, 104, 0.5) !important; }
+.border-status-success\/25 { border-color: rgba(74, 222, 128, 0.25) !important; }
+.border-status-error\/25 { border-color: rgba(248, 113, 113, 0.3) !important; }
+.bg-status-success\/10 { background-color: rgba(74, 222, 128, 0.10) !important; }
+.bg-status-error\/10 { background-color: rgba(248, 113, 113, 0.10) !important; }
+.bg-brand\/5 { background-color: rgba(255, 94, 104, 0.06) !important; }
 .bg-brand { background: var(--c-brand-gradient) !important; }
-.bg-dsynq-hover { background-color: rgba(255, 75, 85, 0.06) !important; }
+.bg-dsynq-hover { background-color: rgba(255, 94, 104, 0.06) !important; }
 
 /* ============================================================
-   Animations
+   Animations & Motion
    ============================================================ */
-.animate-in { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-in { animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .fade-in-50 { animation-name: fade-slide-in; }
 .slide-in-from-bottom-2 { animation-name: fade-slide-in; }
 @keyframes fade-slide-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulse-dot { 0%, 100% { opacity: 0.5; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.1); } }
-.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+@keyframes pulse-dot { 0%, 100% { opacity: 0.6; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.15); } }
+.pulse-dot { animation: pulse-dot 2.2s ease-in-out infinite; }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -302,9 +462,22 @@ select.dsynq-input option {
 }
 .shake { animation: shake 0.4s ease-in-out; }
 
-.scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
 .scrollbar::-webkit-scrollbar-track { background: transparent; }
 .scrollbar::-webkit-scrollbar-thumb { background: var(--c-scrollbar); border-radius: 99px; }
 .scrollbar { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 .touch-scroll { -webkit-overflow-scrolling: touch; }
-.dsynq-sticky-head { background: rgba(13, 15, 20, 0.95); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.dsynq-sticky-head {
+  background: var(--glass-background-elevated);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}

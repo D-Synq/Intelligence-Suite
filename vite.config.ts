@@ -17,7 +17,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'dsynq-icon.svg', 'logo.png', 'og-image.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'dsynq-icon.svg', 'logo.png', 'og-image.png', 'brand/logo.png', 'brand/logo-transparent.png'],
       manifest: {
         name: 'DSynq Payout & IFSC Command',
         short_name: 'DSynq Ops',

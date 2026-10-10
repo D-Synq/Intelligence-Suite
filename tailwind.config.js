@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: ['selector', '[data-theme="dark"]'],
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -14,7 +15,7 @@ export default {
         brand: {
           DEFAULT: 'var(--c-brand)',
           hover: 'var(--c-brand-hover)',
-          tint: 'rgba(255, 75, 85, 0.12)',
+          tint: 'rgba(255, 94, 104, 0.12)',
         },
         dsynq: {
           border: 'var(--c-surface-border)',
@@ -27,11 +28,31 @@ export default {
           error: 'var(--c-error)',
           errorBg: 'var(--c-error-bg)',
         },
+        'color-primary': 'var(--color-primary)',
+        'color-primary-light': 'var(--color-primary-light)',
+        'color-primary-hover': 'var(--color-primary-hover)',
+        'color-primary-active': 'var(--color-primary-active)',
+        'color-background': 'var(--color-background)',
+        'color-background-secondary': 'var(--color-background-secondary)',
+        'color-surface': 'var(--color-surface)',
+        'color-surface-elevated': 'var(--color-surface-elevated)',
+        'color-text': 'var(--color-text)',
+        'color-text-secondary': 'var(--color-text-secondary)',
+        'color-text-muted': 'var(--color-text-muted)',
+        'color-border': 'var(--color-border)',
+        'color-border-strong': 'var(--color-border-strong)',
+        'glass-background': 'var(--glass-background)',
+        'glass-background-elevated': 'var(--glass-background-elevated)',
+        'glass-border': 'var(--glass-border)',
+        'color-input': 'var(--color-input)',
+        'color-hover': 'var(--color-hover)',
+        'color-selected': 'var(--color-selected)',
       },
       boxShadow: {
         card: 'var(--c-glass-shadow)',
-        glow: '0 0 28px -4px rgba(255, 75, 85, 0.45)',
-        'glow-hover': '0 0 32px -2px rgba(255, 75, 85, 0.6)',
+        glass: 'var(--shadow-glass)',
+        glow: '0 0 28px -4px rgba(255, 94, 104, 0.45)',
+        'glow-hover': '0 0 32px -2px rgba(255, 94, 104, 0.6)',
       },
     },
   },
