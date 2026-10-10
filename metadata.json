@@ -1,0 +1,8 @@
+{
+  "name": "DSynq Intelligence Suite",
+  "description": "Zero-auth affiliate payout calculator and batch IFSC code validator",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

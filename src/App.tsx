@@ -1,5 +1,5 @@
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ArrowDownToLine, ArrowUpRight, BadgeIndianRupee, BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, Cloud, Database, Download, FileSpreadsheet, Filter, Loader2, LockKeyhole, LogOut, RefreshCw, Search, ShieldCheck, ShieldX, Sparkles, Upload, Users, X, Zap, Wifi, FileUp } from 'lucide-react';
+import { Activity, ArrowDownToLine, ArrowUpRight, BadgeIndianRupee, BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, Cloud, Database, Download, FileSpreadsheet, Filter, Loader2, LockKeyhole, LogOut, RefreshCw, Search, ShieldCheck, ShieldX, Sparkles, Upload, Users, X, Wifi, FileUp } from 'lucide-react';
 import { downloadReport, processSales, syncGoogleSheet, uploadMaster } from '@/api';
 import { BatchValidator } from '@/components/BatchValidator';
 import type { Kpis, PayoutRow, Sale, KycStatus } from '@/types';
@@ -18,12 +18,7 @@ const kycBadgeClass = (status: KycStatus) => {
   }
 };
 
-const PAYOUT_TABLE_COLS = [
-  'Sponsor', 'Verified plan', 'KYC', 'Sales mix', 'Breakdown', 'IFSC', 'Gross', 'TDS', 'Net payout',
-] as const;
-
-function PayoutView({ activeAffiliates, setActiveAffiliates, lastSync, setLastSync }: {
-  activeAffiliates: number;
+function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
   setActiveAffiliates: (n: number) => void;
   lastSync: string | null;
   setLastSync: (s: string | null) => void;
@@ -63,7 +58,7 @@ function PayoutView({ activeAffiliates, setActiveAffiliates, lastSync, setLastSy
         setLoading(null);
       }
     })();
-  }, []);
+  }, [setActiveAffiliates, setLastSync]);
 
   const filteredRows = useMemo(() => rows.filter((row) => `${row.name} ${row.code}`.toLowerCase().includes(query.toLowerCase())), [rows, query]);
   const selectFile = (nextFile: File | undefined) => { if (nextFile && /\.(xlsx|xls|csv)$/i.test(nextFile.name)) { setFile(nextFile); setError(''); } };
@@ -403,7 +398,7 @@ function App() {
       </nav>
       {activeModule === 'payout' && (
         <div key="payout" className="animate-in fade-in-50 slide-in-from-bottom-2 duration-300 ease-out">
-          <PayoutView activeAffiliates={activeAffiliates} setActiveAffiliates={setActiveAffiliates} lastSync={lastSync} setLastSync={setLastSync} />
+          <PayoutView setActiveAffiliates={setActiveAffiliates} lastSync={lastSync} setLastSync={setLastSync} />
         </div>
       )}
       {activeModule === 'ifsc' && (

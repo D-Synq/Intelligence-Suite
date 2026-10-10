@@ -1,6 +1,7 @@
 import { batchValidateIfsc } from './ifsc';
 import { engine } from './engine';
 import type { ProcessResponse, SyncResponse } from './types';
+import type { Worksheet, Cell } from 'exceljs';
 
 async function loadExcel() {
   const mod = await import('exceljs');
@@ -115,8 +116,8 @@ export async function processSales(
   };
 }
 
-function styleHeaderRow(ws: any, currencyCols: number[]): void {
-  ws.getRow(1).eachCell((cell: any) => {
+function styleHeaderRow(ws: Worksheet, currencyCols: number[]): void {
+  ws.getRow(1).eachCell((cell: Cell) => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
     cell.alignment = { vertical: 'middle' };
@@ -126,9 +127,9 @@ function styleHeaderRow(ws: any, currencyCols: number[]): void {
     ws.getColumn(col).numFmt = '0.00';
   }
 
-  ws.columns.forEach((col: any) => {
+  ws.columns.forEach((col) => {
     let maxLen = col.header?.length ?? 10;
-    col.eachCell?.({ includeEmpty: false }, (cell: any) => {
+    col.eachCell?.({ includeEmpty: false }, (cell: Cell) => {
       const len = String(cell.value ?? '').length;
       if (len > maxLen) maxLen = len;
     });

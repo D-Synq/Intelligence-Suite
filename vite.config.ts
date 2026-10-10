@@ -5,11 +5,19 @@ import { fileURLToPath, URL } from 'node:url';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    host: '0.0.0.0',
+    port: 3000,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 3000,
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'dsynq-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'dsynq-icon.svg', 'logo.png', 'og-image.png'],
       manifest: {
         name: 'DSynq Payout & IFSC Command',
         short_name: 'DSynq Ops',
