@@ -1,7 +1,8 @@
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ArrowDownToLine, BadgeIndianRupee, BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, Cloud, Database, FileSpreadsheet, Filter, Loader2, LogOut, RefreshCw, Search, ShieldCheck, ShieldX, Sparkles, Upload, Users, X, Wifi, FileUp } from 'lucide-react';
-import { downloadReport, processSales, syncGoogleSheet, uploadMaster } from '@/api';
+import { Activity, ArrowDownToLine, BadgeIndianRupee, BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, Cloud, Database, FileSpreadsheet, Filter, Loader2, LogOut, RefreshCw, Search, ShieldCheck, ShieldX, Upload, Users, X, Wifi, FileUp } from 'lucide-react';
+import { downloadReport, processSales, switchDataSourceMode, syncGoogleSheet, uploadMaster } from '@/api';
 import { BatchValidator } from '@/components/BatchValidator';
+import { DSynqLogo } from '@/components/DSynqLogo';
 import { ThemeSwitcher } from '@/theme';
 import type { Kpis, PayoutRow, Sale, KycStatus } from '@/types';
 
@@ -24,7 +25,7 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
   lastSync: string | null;
   setLastSync: (s: string | null) => void;
 }) {
-  const [sheetUrl, setSheetUrl] = useState(DEFAULT_URL);
+  const sheetUrl = DEFAULT_URL;
   const [file, setFile] = useState<File | null>(null);
   const [masterFile, setMasterFile] = useState<File | null>(null);
   const [rows, setRows] = useState<PayoutRow[]>([]);
@@ -63,11 +64,54 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
 
   const filteredRows = useMemo(() => rows.filter((row) => `${row.name} ${row.code}`.toLowerCase().includes(query.toLowerCase())), [rows, query]);
   const selectFile = (nextFile: File | undefined) => { if (nextFile && /\.(xlsx|xls|csv)$/i.test(nextFile.name)) { setFile(nextFile); setError(''); } };
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files[0]); };
+  const handleDrop = (event: DragEvent<HTMLElement>) => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files[0]); };
   const handleSalesChange = (event: ChangeEvent<HTMLInputElement>) => selectFile(event.target.files?.[0]);
 
-  const sync = async () => { setLoading('sync'); setError(''); try { const result = await syncGoogleSheet(sheetUrl); setActiveAffiliates(result.active_affiliates); setLastSync(result.last_sync); setMasterIndexed(true); } catch (err) { setError(err instanceof Error ? err.message : 'Sync failed.'); } finally { setLoading(null); } };
-  const uploadMasterFile = async () => { if (!masterFile) return; setLoading('master'); setError(''); try { const result = await uploadMaster(masterFile); setActiveAffiliates(result.active_affiliates); setLastSync(result.last_sync); setMasterIndexed(true); } catch (err) { setError(err instanceof Error ? err.message : 'Master upload failed.'); } finally { setLoading(null); } };
+  const sync = async () => {
+    if (dataSourceMode === 'manual') {
+      setError('Manual Excel mode is active. Upload your Master Data file below or switch back to Google Sheet Live mode.');
+      return;
+    }
+    setLoading('sync');
+    setError('');
+    try {
+      const result = await syncGoogleSheet(sheetUrl);
+      setActiveAffiliates(result.active_affiliates);
+      setLastSync(result.last_sync);
+      setMasterIndexed(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sync failed.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleModeChange = (mode: 'sheet' | 'manual') => {
+    setDataSourceMode(mode);
+    setError('');
+    const status = switchDataSourceMode(mode);
+    setActiveAffiliates(status.active_affiliates);
+    setLastSync(status.last_sync);
+    setMasterIndexed(status.is_indexed);
+    setRows([]);
+    setKpis(initialKpis);
+  };
+
+  const uploadMasterFile = async () => {
+    if (!masterFile) return;
+    setLoading('master');
+    setError('');
+    try {
+      const result = await uploadMaster(masterFile);
+      setActiveAffiliates(result.active_affiliates);
+      setLastSync(result.last_sync);
+      setMasterIndexed(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Master upload failed.');
+    } finally {
+      setLoading(null);
+    }
+  };
   const process = async (nextPage = 1) => {
     if (!file) return;
     if (!masterIndexed) {
@@ -97,10 +141,15 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
 
   return <div className="relative mx-auto max-w-[1536px] px-4 py-5 sm:px-6 lg:px-10 lg:py-8">
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-brand">Payout command</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-forest">Commission intelligence<span className="heading-dot">.</span></h1>
-        <p className="mt-1 text-xs text-sage">Owned-tier capping, 2% TDS, and verified sales ledger</p>
+      <div className="flex items-center gap-3.5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-xl border border-color-border bg-[var(--c-surface)] p-2 shadow-sm">
+          <DSynqLogo size="sm" interactive={false} className="h-full w-full" />
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-brand">Payout command</p>
+          <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-forest">Commission intelligence<span className="heading-dot">.</span></h1>
+          <p className="mt-0.5 text-xs text-sage">Owned-tier capping, 2% TDS, and verified sales ledger</p>
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <span className="text-[10px] uppercase tracking-wider text-sage">Last sync {formatTime(lastSync)}</span>
@@ -118,21 +167,27 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1 rounded-xl border border-color-border bg-color-input p-1">
-          <button onClick={() => setDataSourceMode('sheet')} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${dataSourceMode === 'sheet' ? 'border border-cyan-400/30 bg-cyan-500/15 text-cyan-600 dark:text-cyan-300' : 'border border-transparent text-sage hover:text-forest'}`}><Cloud size={14} /> Google Sheet Live</button>
-          <button onClick={() => setDataSourceMode('manual')} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${dataSourceMode === 'manual' ? 'border border-brand/30 bg-brand/15 text-brand' : 'border border-transparent text-sage hover:text-forest'}`}><Database size={14} /> Manual Excel Upload</button>
+          <button onClick={() => handleModeChange('sheet')} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${dataSourceMode === 'sheet' ? 'border border-cyan-400/30 bg-cyan-500/15 text-cyan-600 dark:text-cyan-300' : 'border border-transparent text-sage hover:text-forest'}`}><Cloud size={14} /> Google Sheet Live</button>
+          <button onClick={() => handleModeChange('manual')} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${dataSourceMode === 'manual' ? 'border border-brand/30 bg-brand/15 text-brand' : 'border border-transparent text-sage hover:text-forest'}`}><Database size={14} /> Manual Excel Upload</button>
         </div>
         {dataSourceMode === 'sheet' ? (
           <span className="flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-[10px] font-semibold text-cyan-600 dark:text-cyan-300"><Wifi size={11} /> Live cloud sync mode active</span>
         ) : (
-          <span className="flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand/10 px-3 py-1.5 text-[10px] font-semibold text-brand"><FileUp size={11} /> Offline file mode active</span>
+          <span className="flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand/10 px-3 py-1.5 text-[10px] font-semibold text-brand"><FileUp size={11} /> Manual Excel upload mode (Google Sheet bypassed)</span>
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-[1.5fr_1fr_auto]">
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
         {dataSourceMode === 'sheet' ? (
-          <div className="rounded-xl border border-dsynq-border bg-dsynq-surface p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-sage"><Cloud size={14} className="text-cyan-400" /> Google Sheet live source</div>
-            <div className="flex gap-2"><input value={sheetUrl} onChange={(event) => setSheetUrl(event.target.value)} className="dsynq-input min-w-0 flex-1 px-3 py-2 text-xs" /><button onClick={sync} disabled={loading !== null} className="dsynq-btn-primary flex shrink-0 items-center gap-2 px-3 py-2 text-xs disabled:opacity-60">{loading === 'sync' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Sync</button></div>
+          <div className="flex items-center rounded-xl border border-dsynq-border bg-dsynq-surface p-3">
+            <button
+              onClick={sync}
+              disabled={loading !== null}
+              className="dsynq-btn-primary flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-transform duration-150 active:scale-[0.98] disabled:opacity-60"
+            >
+              {loading === 'sync' ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+              <span>Sync Google Sheet</span>
+            </button>
           </div>
         ) : (
           <div className="rounded-xl border border-dsynq-border bg-dsynq-surface p-3">
@@ -140,24 +195,24 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
             <div className="flex items-center gap-2"><label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border border-dashed dsynq-border px-3 py-2 text-xs text-sage transition hover:border-brand/50 hover:text-forest"><Upload size={14} /> <span className="truncate">{masterFile?.name ?? 'Upload Master Data.xlsx'}</span><input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => setMasterFile(event.target.files?.[0] ?? null)} /></label><button onClick={uploadMasterFile} disabled={!masterFile || loading !== null} className="dsynq-btn-secondary rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40">Index</button></div>
           </div>
         )}
-        <div
+        <label
           onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
-          className={`dsynq-dropzone relative block !p-3 transition ${dragging ? 'is-dragging' : ''}`}
+          className={`dsynq-dropzone group relative block cursor-pointer !p-3 transition select-none active:scale-[0.99] ${dragging ? 'is-dragging' : ''}`}
         >
+          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleSalesChange} />
           <div className="flex min-w-[210px] items-center gap-3">
-            <div className="rounded-lg bg-dsynq-surface p-2.5 text-sage"><FileSpreadsheet size={18} /></div>
+            <div className="rounded-lg bg-dsynq-surface p-2.5 text-sage transition-colors group-hover:text-forest"><FileSpreadsheet size={18} /></div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-forest">{file ? file.name : 'Drop weekly sales file'}</p>
-              <p className="mt-0.5 text-[10px] text-sage">XLSX, XLS or CSV</p>
+              <p className="text-xs font-medium text-forest">{file ? file.name : 'Drop weekly sales file or click to browse'}</p>
+              <p className="mt-0.5 text-[10px] text-sage">XLSX, XLS or CSV — click anywhere</p>
             </div>
-            <label className="cursor-pointer text-brand transition active:scale-90 hover:text-brand-hover">
+            <div className="text-brand transition group-hover:scale-105 group-hover:text-brand-hover">
               <Upload size={17} />
-              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleSalesChange} />
-            </label>
+            </div>
           </div>
-        </div>
+        </label>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-dsynq-border pt-4">
         <div className="flex items-center gap-2 text-xs text-sage"><ShieldCheck size={15} className="text-brand" /> Calculations stay server-side for 50k+ records</div>
@@ -168,7 +223,7 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
       </div>
     </section>
 
-    {ifscProgress && ifscProgress.total > 0 && <div className="mb-6 flex items-center gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3 text-xs text-brand"><Loader2 size={14} className="animate-spin" /><span>Verifying IFSC codes — {ifscProgress.done} of {ifscProgress.total}</span><div className="ml-auto h-1.5 w-32 overflow-hidden rounded-full bg-dsynq-border sm:w-40"><div className="h-full rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `${(ifscProgress.done / ifscProgress.total) * 100}%` }} /></div></div>}
+    {ifscProgress && ifscProgress.total > 0 && <div className="mb-6 flex items-center gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3 text-xs text-brand"><div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-visible"><DSynqLogo size="xs" interactive={false} className="h-3.5 w-3.5 animate-pulse" /></div><Loader2 size={14} className="animate-spin" /><span>Verifying IFSC codes — {ifscProgress.done} of {ifscProgress.total}</span><div className="ml-auto h-1.5 w-32 overflow-hidden rounded-full bg-dsynq-border sm:w-40"><div className="h-full rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `${(ifscProgress.done / ifscProgress.total) * 100}%` }} /></div></div>}
     <section className="mb-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 xl:grid-cols-5">
       {[
         { label: 'Total net payout', value: formatCurrency(kpis.net), icon: CircleDollarSign, color: 'text-status-success', bg: 'bg-status-successBg' },
@@ -229,7 +284,7 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
       </div>
     </section>
 
-    <footer className="flex flex-col gap-2 py-6 text-[10px] uppercase tracking-[.16em] text-sage sm:flex-row sm:items-center sm:justify-between"><span>DSynq Intelligence Suite</span><span className="flex items-center gap-2"><Sparkles size={12} /> Owned-tier capping engine v1.0</span></footer>
+    <footer className="flex flex-col gap-2 py-6 text-[10px] uppercase tracking-[.16em] text-sage sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2"><div className="flex h-4 w-4 items-center justify-center overflow-visible"><DSynqLogo size="xs" interactive={false} className="h-3.5 w-3.5" /></div><span>DSynq Intelligence Suite</span></div><span>Owned-tier capping & 2% TDS ledger</span></footer>
     {selected && <Drawer row={selected} onClose={() => setSelected(null)} />}
   </div>;
 }
@@ -238,13 +293,18 @@ function Drawer({ row, onClose }: { row: PayoutRow; onClose: () => void }) {
   return <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
     <aside onClick={(event) => event.stopPropagation()} className="h-full w-full max-w-lg overflow-y-auto border-l border-dsynq-border bg-[var(--glass-background-elevated)] p-5 shadow-2xl backdrop-blur-2xl sm:p-7">
       <div className="mb-8 flex items-start justify-between">
-        <div>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] text-brand">Sponsor detail</p>
-          <h2 className="text-2xl font-bold text-forest">{row.name}</h2>
-          <p className="mt-1 font-mono text-xs text-sage">{row.code} · {row.plan}</p>
-          <span className={`mt-2 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold ${kycBadgeClass(row.kyc_status)}`}>KYC: {row.kyc_status}</span>
+        <div className="flex items-start gap-3.5">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center overflow-visible rounded-xl border border-color-border bg-[var(--c-surface)] p-1.5 shadow-sm">
+            <DSynqLogo size="sm" interactive={false} className="h-full w-full" />
+          </div>
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[.2em] text-brand">Sponsor detail</p>
+            <h2 className="text-2xl font-bold text-forest">{row.name}</h2>
+            <p className="mt-1 font-mono text-xs text-sage">{row.code} · {row.plan}</p>
+            <span className={`mt-2 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold ${kycBadgeClass(row.kyc_status)}`}>KYC: {row.kyc_status}</span>
+          </div>
         </div>
-        <button onClick={onClose} className="dsynq-btn-secondary rounded-lg p-2 text-sage"><X size={17} /></button>
+        <button onClick={onClose} aria-label="Close drawer" className="dsynq-btn-secondary rounded-lg p-2 text-sage transition hover:text-forest"><X size={17} /></button>
       </div>
       <div className="mb-7 grid grid-cols-3 gap-2">
         <div className="rounded-xl border border-dsynq-border bg-dsynq-surface p-3"><p className="text-[10px] text-sage">Sales</p><p className="mt-1 font-mono text-lg tabular-nums text-forest">{row.sales_count}</p></div>
@@ -320,16 +380,13 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
       </div>
       <section className="dsynq-card dsynq-card-rim relative z-10 w-full max-w-md p-6 sm:p-8">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center overflow-hidden bg-transparent">
-            <img src="/brand/logo-transparent.png" alt="DSynq Logo" className="h-full w-full object-contain bg-transparent" />
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center overflow-visible bg-transparent">
+            <DSynqLogo size="xl" interactive={false} className="h-16 w-16" />
           </div>
-          <div className="brand-lockup text-center">
-            <h1 className="software-name text-2xl font-bold tracking-tight text-forest">Welcome back<span className="heading-dot">.</span></h1>
-            <div className="brand-attribution mt-1.5 text-xs text-sage tracking-wider">
-              <span>powered by </span>
-              <span className="brand-attribution-name">DSynq</span>
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-forest">Welcome back<span className="heading-dot">.</span></h1>
+          <p className="mt-1 text-xs text-sage tracking-wider">
+            powered by <strong className="font-semibold text-brand">DSynq</strong>
+          </p>
           <p className="mt-2 text-sm text-sage">Sign in to access the intelligence suite</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -375,8 +432,8 @@ function App() {
       {canInstall && (
         <div className="animate-in fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl border border-cyan-400/25 bg-[var(--glass-background-elevated)] p-3 shadow-2xl backdrop-blur-xl sm:left-auto sm:right-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-700/80 bg-black">
-              <img src="/brand/logo.png" alt="DSynq Ops" className="h-full w-full object-cover" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-visible rounded-xl border border-color-border bg-[var(--c-surface)] p-1.5 shadow-sm">
+              <DSynqLogo size="sm" interactive={false} className="h-full w-full" />
             </div>
             <div className="min-w-0 flex-1"><p className="text-xs font-semibold text-forest">Install DSynq Ops</p><p className="text-[10px] text-sage">Add to home screen for offline access</p></div>
             <button onClick={promptInstall} className="dsynq-btn-primary rounded-lg px-3 py-1.5 text-[11px] font-semibold">Install</button>
@@ -387,18 +444,14 @@ function App() {
       <nav className="sticky top-0 z-40 border-b border-color-border bg-[var(--glass-background-elevated)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1536px] flex-wrap items-center justify-between gap-2.5 px-4 py-2.5 sm:px-6 lg:px-10">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden bg-transparent">
-              <img src="/brand/logo-transparent.png" alt="DSynq" className="h-full w-full object-contain bg-transparent" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-visible bg-transparent">
+              <DSynqLogo size="md" interactive className="cursor-pointer" />
             </div>
-            <div className="brand-lockup hidden sm:flex">
-              <div className="flex items-center gap-2">
-                <span className="software-name text-sm font-bold tracking-tight text-forest">DSynq</span>
-                <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-brand" />
-              </div>
-              <div className="brand-attribution text-[10px] leading-tight text-sage tracking-wider">
-                <span>powered by </span>
-                <span className="brand-attribution-name">DSynq</span>
-              </div>
+            <div className="hidden sm:flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-forest leading-tight">DSynq</span>
+              <span className="text-[10px] leading-tight text-sage tracking-wider">
+                powered by <strong className="font-semibold text-brand">DSynq</strong>
+              </span>
             </div>
             <div className="h-5 w-px bg-color-border mx-2 hidden md:block" />
             <div className="hidden md:block">
@@ -431,10 +484,15 @@ function App() {
       )}
       {activeModule === 'ifsc' && (
         <div key="ifsc" className="mx-auto max-w-[1536px] animate-in fade-in-50 slide-in-from-bottom-2 px-4 py-5 duration-300 ease-out sm:px-6 lg:px-10 lg:py-8">
-          <div className="mb-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-brand">IFSC validator</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-forest">Bank verification workspace<span className="heading-dot">.</span></h1>
-            <p className="mt-1 text-xs text-sage">Batch-check bank branches before payout processing</p>
+          <div className="mb-6 flex items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-xl border border-color-border bg-[var(--c-surface)] p-2 shadow-sm">
+              <DSynqLogo size="sm" interactive={false} className="h-full w-full" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-brand">IFSC validator</p>
+              <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-forest">Bank verification workspace<span className="heading-dot">.</span></h1>
+              <p className="mt-0.5 text-xs text-sage">Batch-check bank branches before payout processing</p>
+            </div>
           </div>
           <BatchValidator />
         </div>

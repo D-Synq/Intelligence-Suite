@@ -48,7 +48,7 @@ async function fetchCsvWithFallback(targetUrl: string): Promise<string> {
 export async function syncGoogleSheet(url: string): Promise<SyncResponse> {
   const text = await fetchCsvWithFallback(url);
   const rows = engine.parseRows(new TextEncoder().encode(text));
-  const count = engine.indexMaster(rows, 'Google Sheet');
+  const count = engine.indexMaster(rows, 'Google Sheet', 'sheet');
   return {
     active_affiliates: count,
     last_sync: engine.state.lastSync ?? '',
@@ -59,12 +59,16 @@ export async function syncGoogleSheet(url: string): Promise<SyncResponse> {
 export async function uploadMaster(file: File): Promise<SyncResponse> {
   const data = new Uint8Array(await file.arrayBuffer());
   const rows = engine.parseRows(data);
-  const count = engine.indexMaster(rows, file.name || 'Master Data');
+  const count = engine.indexMaster(rows, file.name || 'Master Data', 'manual');
   return {
     active_affiliates: count,
     last_sync: engine.state.lastSync ?? '',
     source: engine.state.sourceName,
   };
+}
+
+export function switchDataSourceMode(mode: 'sheet' | 'manual'): { active_affiliates: number; last_sync: string | null; is_indexed: boolean } {
+  return engine.setActiveMode(mode);
 }
 
 export async function processSales(

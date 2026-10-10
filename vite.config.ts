@@ -19,6 +19,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'dsynq-icon.svg', 'logo.png', 'og-image.png', 'brand/logo.png', 'brand/logo-transparent.png', 'brand/icon.svg'],
       manifest: {
+        id: '/',
         name: 'DSynq Payout & IFSC Command',
         short_name: 'DSynq Ops',
         description: 'Zero-auth affiliate payout calculator and batch IFSC code validator',
@@ -27,20 +28,24 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'any',
         start_url: '/',
+        scope: '/',
         icons: [
           {
             src: '/pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
           },
           {
             src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
           },
         ],
+      },
+      devOptions: {
+        enabled: true,
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],

@@ -1,5 +1,5 @@
 import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
-import { Sun, Moon, Monitor } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
@@ -82,6 +82,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
@@ -91,12 +92,11 @@ export function useTheme() {
 }
 
 export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
-  const { mode, setMode } = useTheme();
+  const { mode, resolved, setMode } = useTheme();
 
   const options: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
     { value: 'light', label: 'Light', icon: Sun },
     { value: 'dark', label: 'Dark', icon: Moon },
-    { value: 'system', label: 'System', icon: Monitor },
   ];
 
   return (
@@ -107,7 +107,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
     >
       {options.map((opt) => {
         const Icon = opt.icon;
-        const active = mode === opt.value;
+        const active = mode === opt.value || (mode === 'system' && resolved === opt.value);
         return (
           <button
             key={opt.value}

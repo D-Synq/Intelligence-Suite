@@ -11,6 +11,7 @@ import {
   Upload,
   XCircle,
 } from 'lucide-react';
+import { DSynqLogo } from '@/components/DSynqLogo';
 import {
   downloadValidatedFile,
   parseBatchFile,
@@ -91,7 +92,7 @@ export function BatchValidator() {
     }
   };
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     setDragging(false);
     handleFileSelect(event.dataTransfer.files[0]);
@@ -162,8 +163,10 @@ export function BatchValidator() {
   return (
     <section className="dsynq-card dsynq-card-rim mb-6 p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileSpreadsheet size={16} className="text-brand" />
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center overflow-visible">
+            <DSynqLogo size="xs" interactive={false} className="h-4 w-4" />
+          </div>
           <h2 className="text-sm font-semibold text-forest">Excel IFSC Batch Validator<span className="heading-dot">.</span></h2>
         </div>
         <span className="hidden text-[10px] uppercase tracking-[.18em] text-sage sm:block">
@@ -172,21 +175,24 @@ export function BatchValidator() {
       </div>
 
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[1fr_auto]">
-        <div
+        <label
           onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
-          className={`dsynq-dropzone !p-4 transition active:scale-[0.99] ${dragging ? 'is-dragging' : ''}`}
+          className={`dsynq-dropzone group relative block cursor-pointer !p-4 transition select-none active:scale-[0.99] ${dragging ? 'is-dragging' : ''}`}
         >
+          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleInputChange} />
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-dsynq-surface p-2.5 text-sage"><Upload size={18} /></div>
+            <div className="rounded-lg bg-dsynq-surface p-2.5 text-sage transition-colors group-hover:text-forest"><Upload size={18} /></div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-forest">{file ? file.name : 'Drop Excel/CSV file with IFSC column'}</p>
-              <p className="mt-0.5 text-[10px] text-sage">XLSX, XLS or CSV — auto-detects IFSC column</p>
+              <p className="text-xs font-medium text-forest">{file ? file.name : 'Drop Excel/CSV file with IFSC column or click to browse'}</p>
+              <p className="mt-0.5 text-[10px] text-sage">XLSX, XLS or CSV — click anywhere</p>
             </div>
-            <label className="cursor-pointer text-brand transition active:scale-90 hover:text-brand-hover"><ArrowDownToLine size={17} /><input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleInputChange} /></label>
+            <div className="text-brand transition duration-150 group-hover:scale-105 group-hover:text-brand-hover">
+              <ArrowDownToLine size={17} />
+            </div>
           </div>
-        </div>
+        </label>
 
         <div className="flex items-end gap-2">
           {headers.length > 0 && (
@@ -213,6 +219,9 @@ export function BatchValidator() {
 
       {progress && progress.total > 0 && (
         <div className="mt-4 flex items-center gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3 text-xs text-brand">
+          <div className="flex h-5 w-5 items-center justify-center overflow-visible">
+            <DSynqLogo size="xs" interactive={false} className="h-3.5 w-3.5 animate-pulse" />
+          </div>
           <Loader2 size={14} className="animate-spin" />
           <span>Verified {progress.done} of {progress.total} codes...</span>
           <div className="ml-auto h-1.5 w-32 overflow-hidden rounded-full bg-dsynq-border sm:w-40"><div className="h-full rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `${progress.total > 0 ? (progress.done / progress.total) * 100 : 0}%` }} /></div>

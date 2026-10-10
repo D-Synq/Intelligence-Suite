@@ -52,6 +52,16 @@ function parseKycStatus(value: unknown): KycStatus {
 }
 
 class EngineState {
+  sheetMaster: Record<string, MasterEntry> = {};
+  sheetLastSync: string | null = null;
+  sheetSourceName: string = 'Awaiting Google Sheet sync';
+
+  manualMaster: Record<string, MasterEntry> = {};
+  manualLastSync: string | null = null;
+  manualSourceName: string = 'Awaiting manual master upload';
+
+  activeMode: 'sheet' | 'manual' = 'sheet';
+
   master: Record<string, MasterEntry> = {};
   itemized: Sale[] = [];
   summary: PayoutRow[] = [];
@@ -80,7 +90,7 @@ function parseRows(data: Uint8Array): Record<string, unknown>[] {
   return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
 }
 
-function indexMaster(rows: Record<string, unknown>[], sourceName: string): number {
+function indexMaster(rows: Record<string, unknown>[], sourceName: string, mode: 'sheet' | 'manual' = 'sheet'): number {
   const master: Record<string, MasterEntry> = {};
   for (const row of rows) {
     const rawCode = String(valueFrom(row, ['Referrer Code'], '')).trim().toUpperCase();
@@ -99,12 +109,54 @@ function indexMaster(rows: Record<string, unknown>[], sourceName: string): numbe
       phone: String(valueFrom(row, ['Phone', 'Phone No', 'Mobile', 'Mobile No', 'Contact', 'Phone Number'], '')).trim(),
     };
   }
-  state.master = master;
-  state.lastSync = new Date().toISOString();
-  state.sourceName = sourceName;
+  const syncTime = new Date().toISOString();
+  if (mode === 'sheet') {
+    state.sheetMaster = master;
+    state.sheetLastSync = syncTime;
+    state.sheetSourceName = sourceName;
+  } else {
+    state.manualMaster = master;
+    state.manualLastSync = syncTime;
+    state.manualSourceName = sourceName;
+  }
+
+  if (state.activeMode === mode) {
+    state.master = master;
+    state.lastSync = syncTime;
+    state.sourceName = sourceName;
+    state.itemized = [];
+    state.summary = [];
+  }
+  return Object.keys(master).length;
+}
+
+function setActiveMode(mode: 'sheet' | 'manual'): { active_affiliates: number; last_sync: string | null; is_indexed: boolean } {
+  state.activeMode = mode;
   state.itemized = [];
   state.summary = [];
-  return Object.keys(master).length;
+
+  if (mode === 'manual') {
+    // Strictly isolate: do not use Google Sheet live data
+    state.master = { ...state.manualMaster };
+    state.lastSync = state.manualLastSync;
+    state.sourceName = state.manualSourceName;
+    const count = Object.keys(state.manualMaster).length;
+    return {
+      active_affiliates: count,
+      last_sync: state.manualLastSync,
+      is_indexed: count > 0,
+    };
+  } else {
+    state.master = { ...state.sheetMaster };
+    state.lastSync = state.sheetLastSync;
+    state.sourceName = state.sheetSourceName;
+    const count = Object.keys(state.sheetMaster).length;
+    return {
+      active_affiliates: count,
+      last_sync: state.sheetLastSync,
+      is_indexed: count > 0,
+    };
+  }
 }
 
 function calculateSales(rows: Record<string, unknown>[]): PayoutRow[] {
@@ -190,6 +242,7 @@ function calculateSales(rows: Record<string, unknown>[]): PayoutRow[] {
 export const engine = {
   state,
   indexMaster,
+  setActiveMode,
   calculateSales,
   parseRows,
 };

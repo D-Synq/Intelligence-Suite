@@ -105,6 +105,12 @@
   --c-scrollbar: rgba(255, 94, 104, 0.3);
   --c-selection: rgba(255, 94, 104, 0.25);
   --c-selection-text: #FFFFFF;
+
+  /* DSynq Official Logo Soft Glow System Tokens (Dark Theme) */
+  --dsynq-logo-glow: drop-shadow(0 0 6px rgba(255, 76, 91, 0.22))
+                     drop-shadow(0 0 16px rgba(255, 76, 91, 0.12));
+  --dsynq-logo-glow-hover: drop-shadow(0 0 8px rgba(255, 76, 91, 0.32))
+                           drop-shadow(0 0 20px rgba(255, 76, 91, 0.16));
 }
 
 [data-theme="light"] {
@@ -202,6 +208,12 @@
   --c-scrollbar: rgba(25, 26, 32, 0.2);
   --c-selection: rgba(255, 94, 104, 0.18);
   --c-selection-text: #191A20;
+
+  /* DSynq Official Logo Soft Glow System Tokens (Calibrated for Light Theme) */
+  --dsynq-logo-glow: drop-shadow(0 0 5px rgba(255, 76, 91, 0.14))
+                     drop-shadow(0 0 14px rgba(255, 76, 91, 0.08));
+  --dsynq-logo-glow-hover: drop-shadow(0 0 7px rgba(255, 76, 91, 0.22))
+                           drop-shadow(0 0 18px rgba(255, 76, 91, 0.12));
 }
 
 /* ============================================================
@@ -368,6 +380,35 @@ select.dsynq-input option {
 /* ============================================================
    Brand & Attribution
    ============================================================ */
+/* Official DSynq Brand Logo Soft Glow Effect */
+.dsynq-logo {
+  filter: var(--dsynq-logo-glow);
+  transition: filter 250ms ease, transform 250ms ease;
+  will-change: filter;
+  overflow: visible !important;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Interactive hover state intensifies diffused coral-red glow */
+.dsynq-logo:hover,
+.dsynq-logo.is-interactive:hover,
+.dsynq-logo-interactive:hover,
+a:hover .dsynq-logo,
+button:hover .dsynq-logo {
+  filter: var(--dsynq-logo-glow-hover);
+}
+
+/* Disabled hover effect for non-interactive decorative logo instances */
+.dsynq-logo.is-static:hover,
+.dsynq-logo[data-interactive="false"]:hover,
+a:hover .dsynq-logo.is-static,
+button:hover .dsynq-logo.is-static,
+a:hover .dsynq-logo[data-interactive="false"],
+button:hover .dsynq-logo[data-interactive="false"] {
+  filter: var(--dsynq-logo-glow);
+}
+
 .brand {
   color: var(--color-primary);
   font-weight: 800;
@@ -379,23 +420,6 @@ select.dsynq-input option {
   color: var(--color-primary);
   text-shadow: 0 0 10px rgba(255, 94, 104, 0.5);
   margin-left: 1px;
-}
-
-.brand-lockup {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand-attribution {
-  font-size: 11px;
-  line-height: 1.2;
-  color: var(--color-text-muted);
-  letter-spacing: 0.02em;
-}
-
-.brand-attribution-name {
-  color: var(--color-primary);
-  font-weight: 700;
 }
 
 /* ============================================================
@@ -481,3 +505,47 @@ select.dsynq-input option {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* ============================================================
+   Mobile-First & Touch Interaction System
+   ============================================================ */
+@media (max-width: 640px) {
+  /* Prevent iOS Safari automatic zoom on input focus */
+  .dsynq-input,
+  input[type="text"],
+  input[type="password"],
+  select.dsynq-input {
+    font-size: 16px !important;
+  }
+
+  :root {
+    --c-glass-radius: 16px;
+  }
+}
+
+/* Safe area insets for notches, dynamic island, and home indicator */
+.safe-area-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.safe-area-bottom-dock {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.safe-area-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+/* Touch target helpers */
+.min-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Native-feel touch momentum and tap suppression */
+.touch-momentum {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+.tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
+
