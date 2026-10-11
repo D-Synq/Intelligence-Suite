@@ -98,8 +98,10 @@ export function BatchValidator() {
     handleFileSelect(event.dataTransfer.files[0]);
   };
 
-  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) =>
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     handleFileSelect(event.target.files?.[0]);
+    event.target.value = '';
+  };
 
   const runValidation = async () => {
     if (!file || !selectedColumn) return;
@@ -197,16 +199,16 @@ export function BatchValidator() {
           </div>
         </label>
 
-        <div className="flex items-end gap-2">
+        <div className="flex flex-wrap items-stretch sm:items-end gap-2">
           {headers.length > 0 && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-1 sm:flex-initial flex-col gap-1 min-w-[140px]">
               <label className="text-[10px] uppercase tracking-wider text-sage">IFSC Column</label>
-              <select value={selectedColumn} onChange={(event) => setSelectedColumn(event.target.value)} className="dsynq-input px-3 py-2 text-xs">
+              <select value={selectedColumn} onChange={(event) => setSelectedColumn(event.target.value)} className="dsynq-input px-3 py-2 text-xs w-full">
                 {headers.map((header) => (<option key={header} value={header}>{header}{detectedColumn === header ? ' (auto-detected)' : ''}</option>))}
               </select>
             </div>
           )}
-          <button onClick={runValidation} disabled={!file || !selectedColumn || isBusy} className="dsynq-btn-primary flex items-center gap-2 px-4 py-2.5 text-xs transition-transform duration-150 active:scale-[0.97] disabled:opacity-40">
+          <button onClick={runValidation} disabled={!file || !selectedColumn || isBusy} className="dsynq-btn-primary flex items-center justify-center gap-2 px-4 py-2.5 text-xs transition-transform duration-150 active:scale-[0.97] disabled:opacity-40 w-full sm:w-auto min-h-[38px]">
             {loading === 'validate' ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
             Validate
           </button>
@@ -257,25 +259,30 @@ export function BatchValidator() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3 border-t border-dsynq-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
+          <div className="mt-5 flex flex-col gap-3 border-t border-dsynq-border pt-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
               <div className="flex rounded-lg border border-dsynq-border bg-dsynq-surface p-1">
                 {(['all', 'valid', 'invalid'] as FilterMode[]).map((mode) => (
-                  <button key={mode} onClick={() => setFilter(mode)} className={`rounded-md px-3 py-1.5 text-[11px] font-medium transition ${filter === mode ? 'bg-brand/10 text-brand' : 'text-sage hover:text-forest'}`}>{mode === 'all' ? 'Show All' : mode === 'valid' ? 'Valid Only' : 'Invalid Only'}</button>
+                  <button key={mode} onClick={() => setFilter(mode)} className={`flex-1 sm:flex-initial rounded-md px-3 py-1.5 text-[11px] font-medium transition ${filter === mode ? 'bg-brand/10 text-brand' : 'text-sage hover:text-forest'}`}>{mode === 'all' ? 'Show All' : mode === 'valid' ? 'Valid Only' : 'Invalid Only'}</button>
                 ))}
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-dsynq-border bg-dsynq-surface px-3 py-2">
-                <Search size={14} className="text-sage" />
+                <Search size={14} className="text-sage shrink-0" />
                 <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search code, bank, city..." className="w-full bg-transparent text-xs text-forest outline-none placeholder:text-sage" />
               </div>
             </div>
-            <button onClick={handleExport} disabled={isBusy} className="dsynq-btn-secondary flex items-center gap-2 px-4 py-2.5 text-xs font-semibold transition-transform duration-150 active:scale-[0.97] disabled:opacity-40">
+            <button onClick={handleExport} disabled={isBusy} className="dsynq-btn-secondary flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold transition-transform duration-150 active:scale-[0.97] disabled:opacity-40 w-full sm:w-auto">
               {loading === 'export' ? <Loader2 size={14} className="animate-spin" /> : <ArrowDownToLine size={14} />}
               Download Validated File
             </button>
           </div>
 
-          <div className="mt-4 scrollbar touch-scroll max-h-[420px] overflow-auto rounded-xl border border-dsynq-border">
+          <div className="mt-4 flex items-center justify-between text-[10px] text-sage md:hidden">
+            <span>← Swipe table to view all bank branches →</span>
+            <span>{filteredRows.length} rows</span>
+          </div>
+
+          <div className="mt-2 scrollbar touch-scroll max-h-[420px] overflow-auto rounded-xl border border-dsynq-border">
             <table className="w-full min-w-[960px] text-left">
               <thead className="dsynq-table-header dsynq-sticky-head sticky top-0 z-10 text-[10px]">
                 <tr><th className="px-4 py-3">Sr No</th><th className="px-4 py-3">GN Name</th><th className="px-4 py-3">Name</th><th className="px-4 py-3">IFSC</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Bank</th><th className="px-4 py-3">Branch</th><th className="px-4 py-3">City</th><th className="px-4 py-3">State</th></tr>

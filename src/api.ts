@@ -1,6 +1,6 @@
 import { batchValidateIfsc } from './ifsc';
 import { engine } from './engine';
-import type { ProcessResponse, SyncResponse } from './types';
+import type { ProcessResponse, SyncResponse, MasterParseResult, MasterRowPreview } from './types';
 import type { Worksheet, Cell } from 'exceljs';
 
 async function loadExcel() {
@@ -56,15 +56,41 @@ export async function syncGoogleSheet(url: string): Promise<SyncResponse> {
   };
 }
 
-export async function uploadMaster(file: File): Promise<SyncResponse> {
+export async function parseMasterFile(file: File, sheetName?: string): Promise<MasterParseResult> {
+  if (!file) {
+    throw new Error('No file selected.');
+  }
+  if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
+    throw new Error('Unsupported file format. Please upload an .xlsx, .xls, or .csv file.');
+  }
+  if (file.size === 0) {
+    throw new Error('The selected file is empty (0 bytes). Please select a valid Excel file.');
+  }
   const data = new Uint8Array(await file.arrayBuffer());
-  const rows = engine.parseRows(data);
-  const count = engine.indexMaster(rows, file.name || 'Master Data', 'manual');
+  return engine.parseMasterWorkbook(data, file.name, file.size, sheetName);
+}
+
+export async function commitMasterUpload(
+  entries: Record<string, MasterRowPreview>,
+  sourceName: string,
+): Promise<SyncResponse> {
+  const count = engine.indexMaster(entries, sourceName || 'Manual Master Data', 'manual');
   return {
     active_affiliates: count,
     last_sync: engine.state.lastSync ?? '',
     source: engine.state.sourceName,
   };
+}
+
+export async function uploadMaster(file: File, sheetName?: string): Promise<SyncResponse> {
+  const parsed = await parseMasterFile(file, sheetName);
+  if (parsed.missingRequiredColumns.length > 0) {
+    throw new Error(`Required columns missing: ${parsed.missingRequiredColumns.join(', ')}`);
+  }
+  if (parsed.validCount === 0) {
+    throw new Error('No valid master data rows found with a non-empty Referrer Code.');
+  }
+  return commitMasterUpload(parsed.parsedEntries, file.name);
 }
 
 export function switchDataSourceMode(mode: 'sheet' | 'manual'): { active_affiliates: number; last_sync: string | null; is_indexed: boolean } {

@@ -41,6 +41,12 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'any',
           },
+          {
+            src: '/brand/logo.png',
+            sizes: '1024x1024',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
         ],
       },
       devOptions: {
@@ -72,7 +78,22 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  optimizeDeps: {
-    exclude: ['lucide-react'],
+  build: {
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/xlsx/')) {
+            return 'vendor-xlsx';
+          }
+          if (id.includes('node_modules/lucide-react/')) {
+            return 'vendor-icons';
+          }
+        },
+      },
+    },
   },
 });

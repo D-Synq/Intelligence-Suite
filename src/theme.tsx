@@ -1,5 +1,5 @@
 import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
@@ -91,42 +91,43 @@ export function useTheme() {
   return ctx;
 }
 
-export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
-  const { mode, resolved, setMode } = useTheme();
+export function ThemeSwitcher({
+  className = '',
+}: {
+  compact?: boolean;
+  className?: string;
+}) {
+  const { resolved, setMode } = useTheme();
+  const isDark = resolved === 'dark';
 
-  const options: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
-    { value: 'light', label: 'Light', icon: Sun },
-    { value: 'dark', label: 'Dark', icon: Moon },
-  ];
+  const toggleTheme = () => {
+    setMode(isDark ? 'light' : 'dark');
+  };
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Theme selection"
-      className="inline-flex items-center gap-0.5 rounded-xl border border-color-border bg-color-input p-0.5"
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label="Switch theme"
+      title="Switch theme"
+      aria-pressed={isDark}
+      className={`group relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border backdrop-blur-md transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 focus-visible:ring-offset-1 focus-visible:ring-offset-canvas active:scale-95 motion-reduce:transition-none motion-reduce:transform-none ${
+        isDark
+          ? 'border-white/10 bg-white/[0.04] text-brand shadow-[0_0_12px_-2px_rgba(255,94,104,0.22)] hover:border-brand/40 hover:bg-brand/[0.08] hover:shadow-[0_0_18px_rgba(255,94,104,0.45)]'
+          : 'border-black/[0.08] bg-black/[0.03] text-sage hover:border-brand/35 hover:bg-brand/[0.06] hover:text-brand hover:shadow-[0_0_14px_rgba(255,94,104,0.22)]'
+      } ${className}`}
     >
-      {options.map((opt) => {
-        const Icon = opt.icon;
-        const active = mode === opt.value || (mode === 'system' && resolved === opt.value);
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            aria-label={`${opt.label} mode`}
-            onClick={() => setMode(opt.value)}
-            className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold transition ${
-              active
-                ? 'bg-color-surface-elevated text-brand shadow-sm ring-1 ring-color-border'
-                : 'text-sage hover:text-forest'
-            }`}
-          >
-            <Icon size={13} />
-            {!compact && <span className="hidden sm:inline">{opt.label}</span>}
-          </button>
-        );
-      })}
-    </div>
+      <Lightbulb
+        size={19}
+        strokeWidth={1.85}
+        className={`transition-all duration-200 motion-reduce:transition-none ${
+          isDark
+            ? 'fill-brand/25 text-brand drop-shadow-[0_0_8px_rgba(255,94,104,0.65)] group-hover:scale-105 group-hover:drop-shadow-[0_0_12px_rgba(255,94,104,0.85)]'
+            : 'fill-transparent text-sage group-hover:scale-105 group-hover:text-brand'
+        }`}
+        aria-hidden="true"
+      />
+      <span className="sr-only">Switch theme</span>
+    </button>
   );
 }

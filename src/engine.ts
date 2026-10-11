@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import type { PayoutRow, Sale, KycStatus } from './types';
+import type { PayoutRow, Sale, KycStatus, MasterParseResult, MasterRowPreview } from './types';
 
 type PackageInfo = { name: string; rank: number; commission: number };
 
@@ -31,7 +31,17 @@ const UPGRADES: Record<number, [string, string, number]> = {
   7000: ['advance', 'supreme', 4500],
 };
 
-type MasterEntry = { code: string; name: string; plan: string; plan_name: string; ifsc: string; kyc_status: KycStatus; bank_holder_name: string; account_number: string; phone: string };
+export type MasterEntry = {
+  code: string;
+  name: string;
+  plan: string;
+  plan_name: string;
+  ifsc: string;
+  kyc_status: KycStatus;
+  bank_holder_name: string;
+  account_number: string;
+  phone: string;
+};
 
 const KYC_PRIORITY: Record<KycStatus, number> = {
   'Not Fill': 0,
@@ -76,39 +86,237 @@ function packageKey(value: unknown): string {
   return PLAN_ALIASES[key] ?? 'supreme';
 }
 
-function valueFrom(row: Record<string, unknown>, names: string[], defaultValue: unknown = ''): unknown {
+export function normalizeHeaderKey(str: unknown): string {
+  return String(str ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_\-./#]+/g, '');
+}
+
+export function valueFrom(row: Record<string, unknown>, names: string[], defaultValue: unknown = ''): unknown {
+  const rowKeys = Object.keys(row);
+  const normalizedKeysMap = new Map<string, string>();
+  for (const k of rowKeys) {
+    normalizedKeysMap.set(normalizeHeaderKey(k), k);
+  }
+
   for (const name of names) {
-    if (name in row && row[name] != null && row[name] !== '') return row[name];
+    // 1. Direct match
+    if (name in row && row[name] != null && row[name] !== '') {
+      return row[name];
+    }
+    // 2. Normalized match
+    const norm = normalizeHeaderKey(name);
+    const actualKey = normalizedKeysMap.get(norm);
+    if (actualKey && row[actualKey] != null && row[actualKey] !== '') {
+      return row[actualKey];
+    }
   }
   return defaultValue;
 }
 
 function parseRows(data: Uint8Array): Record<string, unknown>[] {
-  const workbook = XLSX.read(data, { type: 'array' });
+  const workbook = XLSX.read(data, { type: 'array', cellDates: true, raw: false });
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw new Error('Spreadsheet has no worksheets.');
+  }
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+  if (!sheet) return [];
+  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '', raw: false });
 }
 
-function indexMaster(rows: Record<string, unknown>[], sourceName: string, mode: 'sheet' | 'manual' = 'sheet'): number {
-  const master: Record<string, MasterEntry> = {};
-  for (const row of rows) {
-    const rawCode = String(valueFrom(row, ['Referrer Code'], '')).trim().toUpperCase();
-    if (!rawCode || rawCode === 'NAN') continue;
-    const plan = packageKey(valueFrom(row, ['Active Plan', 'Sponsor Package'], 'supreme'));
-    const ifsc = String(valueFrom(row, ['IFSC', 'IFSC Code'], '')).trim().toUpperCase();
-    master[rawCode] = {
-      code: rawCode,
-      name: String(valueFrom(row, ['Name', 'Affiliate Name'], rawCode)).trim(),
-      plan,
-      plan_name: PACKAGES[plan].name,
-      ifsc,
-      kyc_status: parseKycStatus(valueFrom(row, ['KYC Status', 'KYC', 'Kyc Status', 'Verification Status'], 'Unknown')),
-      bank_holder_name: String(valueFrom(row, ['Bank Holder Name', 'Account Holder Name', 'Holder Name', 'Beneficiary Name', 'A/C Holder Name'], '')).trim(),
-      account_number: String(valueFrom(row, ['Account Number', 'Acc No', 'Account No', 'A/C No', 'Bank Account Number'], '')).trim(),
-      phone: String(valueFrom(row, ['Phone', 'Phone No', 'Mobile', 'Mobile No', 'Contact', 'Phone Number'], '')).trim(),
-    };
+export function inspectWorkbookSheets(data: Uint8Array): string[] {
+  const workbook = XLSX.read(data, { type: 'array', cellDates: true, raw: false });
+  return workbook.SheetNames || [];
+}
+
+const MASTER_HEADER_ALIASES = {
+  code: ['referrercode', 'referrer', 'sponsorcode', 'affiliatecode', 'usercode', 'memberid', 'affiliateid', 'code', 'id'],
+  name: ['name', 'affiliatename', 'fullname', 'username', 'membername', 'sponsorname'],
+  plan: ['activeplan', 'sponsorpackage', 'package', 'currentplan', 'plan', 'tier', 'packagename'],
+  ifsc: ['ifsc', 'ifsccode', 'bankifsc', 'branchifsc'],
+  kyc: ['kycstatus', 'kyc', 'verificationstatus', 'verification', 'kycstate'],
+  bank_holder: ['bankholdername', 'accountholdername', 'holdername', 'beneficiaryname', 'acholdername', 'bankholder'],
+  account_number: ['accountnumber', 'accountno', 'accno', 'acno', 'bankaccountnumber', 'bankaccountno', 'account'],
+  phone: ['phone', 'phoneno', 'mobile', 'mobileno', 'contact', 'phonenumber', 'contactnumber', 'mobilenumber', 'telephone'],
+};
+
+export function parseMasterWorkbook(
+  data: Uint8Array,
+  fileName: string,
+  fileSizeBytes: number,
+  sheetName?: string,
+): MasterParseResult {
+  let workbook: XLSX.WorkBook;
+  try {
+    workbook = XLSX.read(data, { type: 'array', cellDates: true, raw: false });
+  } catch (err) {
+    throw new Error(`Failed to read Excel workbook: ${err instanceof Error ? err.message : 'Invalid or corrupted file'}`);
   }
+
+  const sheets = workbook.SheetNames || [];
+  if (sheets.length === 0) {
+    throw new Error('Workbook contains no sheets.');
+  }
+
+  const targetSheetName = (sheetName && sheets.includes(sheetName)) ? sheetName : sheets[0];
+  const worksheet = workbook.Sheets[targetSheetName];
+  if (!worksheet) {
+    throw new Error(`Sheet "${targetSheetName}" not found in workbook.`);
+  }
+
+  // Parse raw 2D array to accurately detect header row if preceded by blank or title rows
+  const rawMatrix = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1, defval: '', raw: false });
+  if (!rawMatrix || rawMatrix.length === 0) {
+    throw new Error(`Sheet "${targetSheetName}" is empty.`);
+  }
+
+  // Find header row: look for row that contains candidate keywords
+  let headerRowIndex = 0;
+  for (let i = 0; i < Math.min(rawMatrix.length, 10); i++) {
+    const row = rawMatrix[i];
+    if (Array.isArray(row)) {
+      const rowNorm = row.map((cell) => normalizeHeaderKey(cell));
+      const hasCode = rowNorm.some((c) => MASTER_HEADER_ALIASES.code.includes(c));
+      const hasName = rowNorm.some((c) => MASTER_HEADER_ALIASES.name.includes(c));
+      const hasPlan = rowNorm.some((c) => MASTER_HEADER_ALIASES.plan.includes(c));
+      const hasIfsc = rowNorm.some((c) => MASTER_HEADER_ALIASES.ifsc.includes(c));
+      if (hasCode || (hasName && hasPlan) || (hasName && hasIfsc)) {
+        headerRowIndex = i;
+        break;
+      }
+    }
+  }
+
+  // Parse rows starting from detected header
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+    range: headerRowIndex,
+    defval: '',
+    raw: false,
+  });
+
+  const rawHeaders = rows.length > 0
+    ? Object.keys(rows[0])
+    : (Array.isArray(rawMatrix[headerRowIndex]) ? rawMatrix[headerRowIndex].map(String) : []);
+
+  const detectedHeaders = rawHeaders.map((h) => String(h).trim()).filter(Boolean);
+
+  // Check required columns (Referrer Code is mandatory for indexing)
+  const normalizedHeaders = detectedHeaders.map((h) => normalizeHeaderKey(h));
+  const hasReferrerCode = normalizedHeaders.some((h) => MASTER_HEADER_ALIASES.code.includes(h));
+  const missingRequiredColumns: string[] = [];
+  if (!hasReferrerCode) {
+    missingRequiredColumns.push('Referrer Code (or Sponsor Code / Affiliate ID)');
+  }
+
+  const parsedEntries: Record<string, MasterRowPreview> = {};
+  let validCount = 0;
+  let rejectedCount = 0;
+
+  for (const row of rows) {
+    // Check if entire row is empty
+    const values = Object.values(row).map((v) => String(v ?? '').trim()).filter(Boolean);
+    if (values.length === 0) continue;
+
+    const rawCodeVal = valueFrom(row, ['Referrer Code', 'Referrer', 'Sponsor Referral Code', 'Sponsor Code', 'Affiliate Code', 'User Code', 'Member ID', 'Affiliate ID', 'Code', 'ID'], '');
+    const rawCode = String(rawCodeVal ?? '').trim().toUpperCase();
+
+    if (!rawCode || rawCode === 'NAN' || rawCode === 'NULL' || rawCode === 'UNDEFINED') {
+      rejectedCount++;
+      continue;
+    }
+
+    const planVal = valueFrom(row, ['Active Plan', 'Sponsor Package', 'Package', 'Current Plan', 'Plan', 'Tier', 'Package Name'], 'supreme');
+    const plan = packageKey(planVal);
+
+    const ifscVal = valueFrom(row, ['IFSC', 'IFSC Code', 'Bank IFSC', 'Branch IFSC'], '');
+    const ifsc = String(ifscVal ?? '').trim().toUpperCase();
+
+    const nameVal = valueFrom(row, ['Name', 'Affiliate Name', 'Full Name', 'User Name', 'Member Name', 'Sponsor Name'], rawCode);
+    const name = String(nameVal ?? rawCode).trim();
+
+    const kycVal = valueFrom(row, ['KYC Status', 'KYC', 'Kyc Status', 'Verification Status', 'Verification', 'KYC State'], 'Unknown');
+    const kyc_status = parseKycStatus(kycVal);
+
+    const bankHolderVal = valueFrom(row, ['Bank Holder Name', 'Account Holder Name', 'Holder Name', 'Beneficiary Name', 'A/C Holder Name', 'Bank Holder'], name);
+    const bank_holder_name = String(bankHolderVal ?? name).trim();
+
+    // Preserve leading zeros in account number & phone
+    const accVal = valueFrom(row, ['Account Number', 'Acc No', 'Account No', 'A/C No', 'Bank Account Number', 'Bank Account No', 'Account'], '');
+    const account_number = String(accVal ?? '').trim();
+
+    const phoneVal = valueFrom(row, ['Phone', 'Phone No', 'Mobile', 'Mobile No', 'Contact', 'Phone Number', 'Contact Number', 'Mobile Number'], '');
+    const phone = String(phoneVal ?? '').trim();
+
+    parsedEntries[rawCode] = {
+      code: rawCode,
+      name: name || rawCode,
+      plan,
+      plan_name: PACKAGES[plan]?.name ?? 'Supreme Package',
+      ifsc,
+      kyc_status,
+      bank_holder_name: bank_holder_name || name || rawCode,
+      account_number,
+      phone,
+    };
+    validCount++;
+  }
+
+  const previewRows = Object.values(parsedEntries).slice(0, 10);
+
+  return {
+    fileName,
+    fileSizeBytes,
+    sheets,
+    selectedSheet: targetSheetName,
+    detectedHeaders,
+    validCount,
+    rejectedCount,
+    missingRequiredColumns,
+    previewRows,
+    parsedEntries,
+  };
+}
+
+function indexMaster(
+  rowsOrEntries: Record<string, unknown>[] | Record<string, MasterEntry>,
+  sourceName: string,
+  mode: 'sheet' | 'manual' = 'sheet',
+): number {
+  let master: Record<string, MasterEntry> = {};
+
+  if (!Array.isArray(rowsOrEntries)) {
+    // Already pre-parsed entries
+    master = { ...rowsOrEntries };
+  } else {
+    for (const row of rowsOrEntries) {
+      const rawCode = String(
+        valueFrom(
+          row,
+          ['Referrer Code', 'Referrer', 'Sponsor Referral Code', 'Sponsor Code', 'Affiliate Code', 'User Code', 'Member ID', 'Affiliate ID', 'Code', 'ID'],
+          '',
+        ),
+      ).trim().toUpperCase();
+
+      if (!rawCode || rawCode === 'NAN' || rawCode === 'NULL') continue;
+      const plan = packageKey(valueFrom(row, ['Active Plan', 'Sponsor Package', 'Package', 'Current Plan', 'Plan', 'Tier', 'Package Name'], 'supreme'));
+      const ifsc = String(valueFrom(row, ['IFSC', 'IFSC Code', 'Bank IFSC', 'Branch IFSC'], '')).trim().toUpperCase();
+      const name = String(valueFrom(row, ['Name', 'Affiliate Name', 'Full Name', 'User Name', 'Member Name', 'Sponsor Name'], rawCode)).trim();
+      master[rawCode] = {
+        code: rawCode,
+        name: name || rawCode,
+        plan,
+        plan_name: PACKAGES[plan]?.name ?? 'Supreme Package',
+        ifsc,
+        kyc_status: parseKycStatus(valueFrom(row, ['KYC Status', 'KYC', 'Kyc Status', 'Verification Status', 'Verification', 'KYC State'], 'Unknown')),
+        bank_holder_name: String(valueFrom(row, ['Bank Holder Name', 'Account Holder Name', 'Holder Name', 'Beneficiary Name', 'A/C Holder Name'], name || rawCode)).trim(),
+        account_number: String(valueFrom(row, ['Account Number', 'Acc No', 'Account No', 'A/C No', 'Bank Account Number', 'Bank Account No', 'Account'], '')).trim(),
+        phone: String(valueFrom(row, ['Phone', 'Phone No', 'Mobile', 'Mobile No', 'Contact', 'Phone Number', 'Contact Number', 'Mobile Number'], '')).trim(),
+      };
+    }
+  }
+
   const syncTime = new Date().toISOString();
   if (mode === 'sheet') {
     state.sheetMaster = master;
@@ -245,4 +453,7 @@ export const engine = {
   setActiveMode,
   calculateSales,
   parseRows,
+  parseMasterWorkbook,
+  inspectWorkbookSheets,
+  normalizeHeaderKey,
 };

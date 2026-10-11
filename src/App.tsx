@@ -1,10 +1,40 @@
-import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownToLine, BadgeIndianRupee, BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, Cloud, Database, FileSpreadsheet, Filter, Layers, Loader2, LogOut, RefreshCw, Search, ShieldCheck, ShieldX, Upload, Users, X, Wifi, FileUp } from 'lucide-react';
-import { downloadReport, processSales, switchDataSourceMode, syncGoogleSheet, uploadMaster } from '@/api';
-import { BatchValidator } from '@/components/BatchValidator';
+import { ChangeEvent, DragEvent, FormEvent, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowDownToLine,
+  BadgeIndianRupee,
+  BarChart3,
+  Building2,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  CircleDollarSign,
+  Cloud,
+  Database,
+  FileSpreadsheet,
+  FileUp,
+  Filter,
+  Layers,
+  Loader2,
+  LogOut,
+  Pencil,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  ShieldX,
+  Upload,
+  Users,
+  Wifi,
+  X,
+} from 'lucide-react';
+import { commitMasterUpload, downloadReport, parseMasterFile, processSales, switchDataSourceMode, syncGoogleSheet } from '@/api';
 import { DSynqLogo } from '@/components/DSynqLogo';
 import { ThemeSwitcher } from '@/theme';
-import type { Kpis, PayoutRow, Sale, KycStatus } from '@/types';
+import type { Kpis, PayoutRow, Sale, KycStatus, MasterParseResult } from '@/types';
+
+const BatchValidator = lazy(() =>
+  import('@/components/BatchValidator').then((m) => ({ default: m.BatchValidator })),
+);
 
 const DEFAULT_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT7clyjnFONEDvT23flDmT1DrRAxeOQJuI-wW5qbZkxI0SJGddCFwhK-rRV2HSKv_9svx44Ok9dw4p6/pub?gid=0&single=true&output=csv';
 const initialKpis: Kpis = { gross: 0, tds: 0, net: 0, sales_count: 0, active_paid_sponsors: 0 };
@@ -25,9 +55,23 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
   lastSync: string | null;
   setLastSync: (s: string | null) => void;
 }) {
-  const sheetUrl = DEFAULT_URL;
+  const [sheetUrl, setSheetUrl] = useState<string>(() => {
+    try {
+      return localStorage.getItem('dsynq_sheet_url') || DEFAULT_URL;
+    } catch {
+      return DEFAULT_URL;
+    }
+  });
+  const [isEditingUrl, setIsEditingUrl] = useState(false);
+  const [tempSheetUrl, setTempSheetUrl] = useState(sheetUrl);
   const [file, setFile] = useState<File | null>(null);
   const [masterFile, setMasterFile] = useState<File | null>(null);
+  const [masterParseResult, setMasterParseResult] = useState<MasterParseResult | null>(null);
+  const [selectedSheet, setSelectedSheet] = useState<string>('');
+  const [masterSuccessMessage, setMasterSuccessMessage] = useState<string>('');
+  const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
+  const [masterDragging, setMasterDragging] = useState<boolean>(false);
+  const masterInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<PayoutRow[]>([]);
   const [kpis, setKpis] = useState(initialKpis);
   const [page, setPage] = useState(1);
@@ -50,7 +94,7 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
       setLoading('sync');
       setError('');
       try {
-        const result = await syncGoogleSheet(DEFAULT_URL);
+        const result = await syncGoogleSheet(sheetUrl);
         setActiveAffiliates(result.active_affiliates);
         setLastSync(result.last_sync);
         setMasterIndexed(true);
@@ -60,7 +104,7 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
         setLoading(null);
       }
     })();
-  }, [setActiveAffiliates, setLastSync]);
+  }, [sheetUrl, setActiveAffiliates, setLastSync]);
 
   const filteredRows = useMemo(() => rows.filter((row) => `${row.name} ${row.code}`.toLowerCase().includes(query.toLowerCase())), [rows, query]);
   const selectFile = (nextFile: File | undefined) => { if (nextFile && /\.(xlsx|xls|csv)$/i.test(nextFile.name)) { setFile(nextFile); setError(''); } };
@@ -89,6 +133,7 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
   const handleModeChange = (mode: 'sheet' | 'manual') => {
     setDataSourceMode(mode);
     setError('');
+    setMasterSuccessMessage('');
     const status = switchDataSourceMode(mode);
     setActiveAffiliates(status.active_affiliates);
     setLastSync(status.last_sync);
@@ -97,19 +142,96 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
     setKpis(initialKpis);
   };
 
-  const uploadMasterFile = async () => {
-    if (!masterFile) return;
+  const handleMasterFileSelect = async (nextFile: File | null | undefined, sheetToUse?: string) => {
+    if (!nextFile) return;
+
+    if (!/\.(xlsx|xls|csv)$/i.test(nextFile.name)) {
+      setError(`Invalid file type "${nextFile.name}". Please upload a supported spreadsheet (.xlsx, .xls, or .csv).`);
+      return;
+    }
+
+    if (nextFile.size === 0) {
+      setError(`The selected file "${nextFile.name}" is empty (0 bytes).`);
+      return;
+    }
+
+    setMasterFile(nextFile);
+    setError('');
+    setMasterSuccessMessage('');
+    setLoading('master');
+
+    try {
+      console.log(`[DSynq Master Upload] Reading file "${nextFile.name}" (${(nextFile.size / 1024).toFixed(1)} KB)...`);
+      const parsed = await parseMasterFile(nextFile, sheetToUse);
+      console.log(`[DSynq Master Upload] Parsed sheet "${parsed.selectedSheet}": ${parsed.validCount} valid records, ${parsed.rejectedCount} rejected rows, columns:`, parsed.detectedHeaders);
+      setMasterParseResult(parsed);
+      setSelectedSheet(parsed.selectedSheet);
+
+      if (parsed.missingRequiredColumns.length > 0) {
+        setError(`Missing required column: ${parsed.missingRequiredColumns.join(', ')}. Please verify the worksheet structure.`);
+      } else if (parsed.validCount === 0) {
+        setError('No valid affiliate master records found. Please check that the Referrer Code / Sponsor Code column is populated.');
+      } else {
+        setMasterSuccessMessage(`Excel parsed successfully: ${parsed.validCount} records detected in sheet "${parsed.selectedSheet}". Ready to index.`);
+      }
+    } catch (err) {
+      console.error('[DSynq Master Upload] Parse error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to parse Excel file.');
+      setMasterParseResult(null);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleSheetChange = async (newSheet: string) => {
+    setSelectedSheet(newSheet);
+    if (masterFile) {
+      await handleMasterFileSelect(masterFile, newSheet);
+    }
+  };
+
+  const confirmMasterImport = async () => {
+    if (!masterParseResult) {
+      if (masterFile) {
+        await handleMasterFileSelect(masterFile);
+      }
+      return;
+    }
+
+    if (masterParseResult.missingRequiredColumns.length > 0) {
+      setError(`Cannot import: missing required column ${masterParseResult.missingRequiredColumns.join(', ')}`);
+      return;
+    }
+
+    if (masterParseResult.validCount === 0) {
+      setError('Cannot import: 0 valid affiliate records detected.');
+      return;
+    }
+
     setLoading('master');
     setError('');
     try {
-      const result = await uploadMaster(masterFile);
+      const result = await commitMasterUpload(masterParseResult.parsedEntries, masterParseResult.fileName);
       setActiveAffiliates(result.active_affiliates);
       setLastSync(result.last_sync);
       setMasterIndexed(true);
+      setShowPreviewModal(false);
+      setMasterSuccessMessage(`Master data successfully indexed: ${result.active_affiliates} affiliates active from "${masterParseResult.fileName}".`);
     } catch (err) {
+      console.error('[DSynq Master Upload] Import error:', err);
       setError(err instanceof Error ? err.message : 'Master upload failed.');
     } finally {
       setLoading(null);
+    }
+  };
+
+  const resetMasterUpload = () => {
+    setMasterFile(null);
+    setMasterParseResult(null);
+    setSelectedSheet('');
+    setMasterSuccessMessage('');
+    if (masterInputRef.current) {
+      masterInputRef.current.value = '';
     }
   };
   const process = async (nextPage = 1) => {
@@ -158,6 +280,15 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
     </div>
 
     {error && <div className="animate-in mb-5 flex items-center justify-between rounded-xl border border-status-error/25 bg-status-errorBg px-4 py-3 text-sm text-status-error"><span>{error}</span><button onClick={() => setError('')}><X size={16} /></button></div>}
+    {masterSuccessMessage && (
+      <div className="animate-in mb-5 flex items-center justify-between rounded-xl border border-status-success/25 bg-status-successBg px-4 py-3 text-sm text-status-success">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 size={16} className="shrink-0" />
+          <span>{masterSuccessMessage}</span>
+        </div>
+        <button onClick={() => setMasterSuccessMessage('')}><X size={16} /></button>
+      </div>
+    )}
 
     <section className="dsynq-card dsynq-card-rim mb-6 p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
@@ -179,20 +310,251 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
 
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
         {dataSourceMode === 'sheet' ? (
-          <div className="flex items-center rounded-xl border border-dsynq-border bg-dsynq-surface p-3">
-            <button
-              onClick={sync}
-              disabled={loading !== null}
-              className="dsynq-btn-primary flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-transform duration-150 active:scale-[0.98] disabled:opacity-60"
-            >
-              {loading === 'sync' ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
-              <span>Sync Google Sheet</span>
-            </button>
+          <div className="flex flex-col justify-center rounded-xl border border-dsynq-border bg-dsynq-surface p-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={sync}
+                disabled={loading !== null}
+                className="dsynq-btn-primary flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-transform duration-150 active:scale-[0.98] disabled:opacity-60"
+              >
+                {loading === 'sync' ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+                <span>Sync Google Sheet</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingUrl((prev) => !prev);
+                  setTempSheetUrl(sheetUrl);
+                }}
+                title="Edit Google Sheet URL"
+                aria-label="Edit Google Sheet URL"
+                className={`flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-lg border transition-all duration-150 active:scale-95 ${
+                  isEditingUrl
+                    ? 'border-brand bg-brand/15 text-brand shadow-sm'
+                    : 'border-dsynq-border bg-dsynq-surface text-sage hover:border-brand/40 hover:text-forest'
+                }`}
+              >
+                <Pencil size={15} />
+              </button>
+            </div>
+            {isEditingUrl && (
+              <div className="mt-2.5 rounded-lg border border-dsynq-border bg-[var(--c-input)]/90 p-2.5 animate-in fade-in duration-150">
+                <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium text-sage">
+                  <span>Google Sheet Published CSV URL</span>
+                  {sheetUrl !== DEFAULT_URL && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempSheetUrl(DEFAULT_URL);
+                        setSheetUrl(DEFAULT_URL);
+                        try { localStorage.removeItem('dsynq_sheet_url'); } catch { /* ignore */ }
+                      }}
+                      className="text-[10px] text-brand hover:underline"
+                    >
+                      Reset default
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    value={tempSheetUrl}
+                    onChange={(event) => setTempSheetUrl(event.target.value)}
+                    placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv"
+                    className="min-w-0 flex-1 rounded-md border border-dsynq-border bg-dsynq-surface px-2.5 py-1.5 font-mono text-xs text-forest outline-none transition focus:border-brand"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const nextUrl = tempSheetUrl.trim() || DEFAULT_URL;
+                      setSheetUrl(nextUrl);
+                      try { localStorage.setItem('dsynq_sheet_url', nextUrl); } catch { /* ignore */ }
+                      setIsEditingUrl(false);
+                      // Trigger sync with new URL
+                      setLoading('sync');
+                      setError('');
+                      try {
+                        const result = await syncGoogleSheet(nextUrl);
+                        setActiveAffiliates(result.active_affiliates);
+                        setLastSync(result.last_sync);
+                        setMasterIndexed(true);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Sync failed with updated URL.');
+                      } finally {
+                        setLoading(null);
+                      }
+                    }}
+                    className="dsynq-btn-primary flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold"
+                  >
+                    <Check size={13} />
+                    <span>Save</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempSheetUrl(sheetUrl);
+                      setIsEditingUrl(false);
+                    }}
+                    className="rounded-md border border-dsynq-border px-2.5 py-1.5 text-xs text-sage transition hover:text-forest"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+                {sheetUrl !== DEFAULT_URL && (
+                  <p className="mt-1.5 text-[10px] text-emerald-500 dark:text-emerald-400">Custom sheet configured</p>
+                )}
+              </div>
+            )}
           </div>
         ) : (
-          <div className="rounded-xl border border-dsynq-border bg-dsynq-surface p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-sage"><Database size={14} className="text-blue-400" /> Master data upload</div>
-            <div className="flex items-center gap-2"><label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border border-dashed dsynq-border px-3 py-2 text-xs text-sage transition hover:border-brand/50 hover:text-forest"><Upload size={14} /> <span className="truncate">{masterFile?.name ?? 'Upload Master Data.xlsx'}</span><input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => setMasterFile(event.target.files?.[0] ?? null)} /></label><button onClick={uploadMasterFile} disabled={!masterFile || loading !== null} className="dsynq-btn-secondary rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40">Index</button></div>
+          <div className="rounded-xl border border-dsynq-border bg-dsynq-surface p-3.5">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-sage">
+                <Database size={14} className="text-brand" />
+                <span>Manual Master Data Excel</span>
+              </div>
+              {masterFile && (
+                <button
+                  type="button"
+                  onClick={resetMasterUpload}
+                  className="text-[10px] text-sage transition hover:text-forest"
+                  title="Clear selected file"
+                >
+                  Clear file
+                </button>
+              )}
+            </div>
+
+            <label
+              onDragOver={(event) => { event.preventDefault(); setMasterDragging(true); }}
+              onDragLeave={() => setMasterDragging(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setMasterDragging(false);
+                const dropped = event.dataTransfer.files?.[0];
+                if (dropped) handleMasterFileSelect(dropped);
+              }}
+              className={`group relative flex min-h-[50px] cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed px-3 py-2 text-xs transition select-none ${
+                masterDragging
+                  ? 'border-brand bg-brand/10 text-brand'
+                  : 'dsynq-border text-sage hover:border-brand/50 hover:text-forest'
+              }`}
+            >
+              <input
+                ref={masterInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(event) => {
+                  const selectedFile = event.target.files?.[0];
+                  if (selectedFile) {
+                    handleMasterFileSelect(selectedFile);
+                  }
+                  // Reset input value so the exact same file can be selected again
+                  event.target.value = '';
+                }}
+              />
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="rounded-md bg-dsynq-surface p-1.5 text-sage group-hover:text-brand">
+                  <Upload size={14} />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-forest">
+                    {masterFile ? masterFile.name : 'Drop master file or click to browse'}
+                  </p>
+                  <p className="text-[10px] text-sage">
+                    {masterFile
+                      ? `${(masterFile.size / 1024).toFixed(1)} KB · ${masterFile.name.split('.').pop()?.toUpperCase()}`
+                      : 'Accepts .xlsx, .xls, .csv'}
+                  </p>
+                </div>
+              </div>
+
+              {loading === 'master' && (
+                <div className="flex items-center gap-1.5 text-[11px] text-brand">
+                  <Loader2 size={13} className="animate-spin" />
+                  <span>Parsing...</span>
+                </div>
+              )}
+            </label>
+
+            {/* If workbook has multiple sheets, allow selecting sheet */}
+            {masterParseResult && masterParseResult.sheets.length > 1 && (
+              <div className="mt-2.5 flex items-center gap-2 text-xs">
+                <span className="text-[11px] text-sage shrink-0">Worksheet:</span>
+                <select
+                  value={selectedSheet}
+                  onChange={(e) => handleSheetChange(e.target.value)}
+                  className="dsynq-input min-w-0 flex-1 px-2.5 py-1 text-xs"
+                >
+                  {masterParseResult.sheets.map((sheet) => (
+                    <option key={sheet} value={sheet}>{sheet}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Diagnostic / Status Summary Bar */}
+            {masterParseResult && (
+              <div className="mt-2.5 rounded-lg border border-dsynq-border bg-[var(--c-input)]/60 p-2.5 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded bg-status-successBg px-1.5 py-0.5 text-[10px] font-semibold text-status-success">
+                      <CheckCircle2 size={11} /> {masterParseResult.validCount} valid records
+                    </span>
+                    {masterParseResult.rejectedCount > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+                        {masterParseResult.rejectedCount} skipped/empty
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPreviewModal(true)}
+                    className="text-[10px] font-medium text-brand hover:underline"
+                  >
+                    View preview ({masterParseResult.validCount})
+                  </button>
+                </div>
+
+                {masterParseResult.missingRequiredColumns.length > 0 && (
+                  <p className="mt-1.5 text-[10px] text-status-error">
+                    Missing required: {masterParseResult.missingRequiredColumns.join(', ')}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="mt-3 flex items-center justify-end gap-2">
+              {masterParseResult && masterParseResult.validCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowPreviewModal(true)}
+                  className="dsynq-btn-secondary rounded-lg px-3 py-1.5 text-xs font-semibold"
+                >
+                  Preview Data
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={confirmMasterImport}
+                disabled={!masterFile || loading !== null || (masterParseResult?.missingRequiredColumns.length ?? 0) > 0 || (masterParseResult?.validCount === 0)}
+                className="dsynq-btn-primary flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold disabled:opacity-40"
+              >
+                {loading === 'master' ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Indexing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={13} />
+                    <span>{masterIndexed ? 'Re-Index Master Data' : 'Index Master Data'}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
         <label
@@ -243,7 +605,11 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
     <section className="dsynq-card dsynq-card-rim overflow-hidden">
       <div className="flex flex-col gap-4 border-b border-dsynq-border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div>
-          <div className="flex items-center gap-2"><h2 className="text-sm font-semibold text-forest">Payout ledger</h2><span className="rounded-full bg-dsynq-surface px-2 py-0.5 text-[10px] text-sage">{totalRows} sponsors</span></div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold text-forest">Payout ledger</h2>
+            <span className="rounded-full bg-dsynq-surface px-2 py-0.5 text-[10px] text-sage">{totalRows} sponsors</span>
+            <span className="text-[10px] text-sage/80 md:hidden">• Swipe table horizontally</span>
+          </div>
           <p className="mt-1 text-xs text-sage">Verified sponsor commissions after owned-tier capping</p>
         </div>
         <div className="flex items-center gap-2">
@@ -296,6 +662,165 @@ function PayoutView({ setActiveAffiliates, lastSync, setLastSync }: {
       <span>Owned-tier capping & 2% TDS ledger</span>
     </footer>
     {selected && <Drawer row={selected} onClose={() => setSelected(null)} />}
+    {showPreviewModal && masterParseResult && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowPreviewModal(false)}>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl border border-dsynq-border bg-[var(--glass-background-elevated)] shadow-2xl backdrop-blur-2xl"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-dsynq-border p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                <Database size={18} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-forest">Master Data Import Preview</h3>
+                <p className="text-xs text-sage">
+                  File: <strong className="font-semibold text-forest">{masterParseResult.fileName}</strong> · Sheet: <strong className="font-semibold text-forest">{masterParseResult.selectedSheet}</strong> ({(masterParseResult.fileSizeBytes / 1024).toFixed(1)} KB)
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowPreviewModal(false)}
+              className="rounded-lg p-2 text-sage transition hover:bg-dsynq-surface hover:text-forest"
+              aria-label="Close preview"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="grid grid-cols-2 gap-3 border-b border-dsynq-border bg-[var(--c-input)]/40 p-4 sm:grid-cols-4">
+            <div className="rounded-lg border border-dsynq-border bg-dsynq-surface p-2.5">
+              <span className="text-[10px] uppercase tracking-wider text-sage">Detected Rows</span>
+              <p className="font-mono text-base font-semibold text-forest">
+                {masterParseResult.validCount + masterParseResult.rejectedCount}
+              </p>
+            </div>
+            <div className="rounded-lg border border-status-success/20 bg-status-successBg p-2.5">
+              <span className="text-[10px] uppercase tracking-wider text-status-success">Valid Affiliates</span>
+              <p className="font-mono text-base font-semibold text-status-success">
+                {masterParseResult.validCount}
+              </p>
+            </div>
+            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-2.5">
+              <span className="text-[10px] uppercase tracking-wider text-amber-300">Skipped Empty</span>
+              <p className="font-mono text-base font-semibold text-amber-300">
+                {masterParseResult.rejectedCount}
+              </p>
+            </div>
+            <div className="rounded-lg border border-dsynq-border bg-dsynq-surface p-2.5">
+              <span className="text-[10px] uppercase tracking-wider text-sage">Columns Detected</span>
+              <p className="font-mono text-base font-semibold text-forest">
+                {masterParseResult.detectedHeaders.length}
+              </p>
+            </div>
+          </div>
+
+          {/* Multi-sheet selector inside modal if available */}
+          {masterParseResult.sheets.length > 1 && (
+            <div className="flex items-center gap-2 border-b border-dsynq-border px-5 py-2.5 text-xs">
+              <span className="text-sage">Active Sheet:</span>
+              <select
+                value={selectedSheet}
+                onChange={(e) => handleSheetChange(e.target.value)}
+                className="dsynq-input px-2.5 py-1 text-xs"
+              >
+                {masterParseResult.sheets.map((sheet) => (
+                  <option key={sheet} value={sheet}>{sheet}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Table Preview */}
+          <div className="min-h-0 flex-1 overflow-auto p-5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-forest">First 10 records sample:</span>
+              <span className="text-[10px] text-sage">Leading zeros in IFSC and Account numbers preserved</span>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-dsynq-border bg-dsynq-surface">
+              <table className="min-w-full divide-y divide-dsynq-border text-left text-xs">
+                <thead className="bg-[var(--c-input)] font-semibold text-sage">
+                  <tr>
+                    <th className="px-3 py-2">Referrer Code</th>
+                    <th className="px-3 py-2">Name</th>
+                    <th className="px-3 py-2">Plan</th>
+                    <th className="px-3 py-2">IFSC</th>
+                    <th className="px-3 py-2">Bank Account</th>
+                    <th className="px-3 py-2">Phone</th>
+                    <th className="px-3 py-2">KYC</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-dsynq-border font-mono text-[11px] text-forest">
+                  {masterParseResult.previewRows.map((entry) => (
+                    <tr key={entry.code} className="hover:bg-color-hover">
+                      <td className="px-3 py-2 font-bold text-brand">{entry.code}</td>
+                      <td className="px-3 py-2 font-sans font-medium text-forest">{entry.name}</td>
+                      <td className="px-3 py-2 font-sans text-sage">{entry.plan_name}</td>
+                      <td className="px-3 py-2 text-forest">{entry.ifsc || '—'}</td>
+                      <td className="px-3 py-2 text-forest">{entry.account_number || '—'}</td>
+                      <td className="px-3 py-2 text-sage">{entry.phone || '—'}</td>
+                      <td className="px-3 py-2">
+                        <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-sans font-semibold ${kycBadgeClass(entry.kyc_status)}`}>
+                          {entry.kyc_status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Detected Header Mapping badges */}
+            <div className="mt-4">
+              <span className="text-[11px] font-medium text-sage">Detected Columns:</span>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {masterParseResult.detectedHeaders.map((header) => (
+                  <span
+                    key={header}
+                    className="rounded-md border border-dsynq-border bg-dsynq-surface px-2 py-0.5 font-mono text-[10px] text-forest"
+                  >
+                    {header}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer actions */}
+          <div className="flex items-center justify-between border-t border-dsynq-border p-4">
+            <button
+              type="button"
+              onClick={() => setShowPreviewModal(false)}
+              className="dsynq-btn-secondary rounded-lg px-4 py-2 text-xs font-semibold"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={confirmMasterImport}
+              disabled={loading !== null || masterParseResult.validCount === 0 || masterParseResult.missingRequiredColumns.length > 0}
+              className="dsynq-btn-primary flex items-center gap-2 rounded-lg px-5 py-2 text-xs font-semibold disabled:opacity-40"
+            >
+              {loading === 'master' ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Indexing {masterParseResult.validCount} records...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={14} />
+                  <span>Confirm & Index ({masterParseResult.validCount} Affiliates)</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>;
 }
 
@@ -412,17 +937,85 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
   );
 }
 
-function ModuleSwitcher({ active, onChange }: { active: ActiveModule; onChange: (mod: ActiveModule) => void }) {
-  const payoutActive = active === 'payout';
-  const btnBase = 'flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-all duration-300 ease-out active:scale-[0.97] will-change-transform';
+function ModuleSwitcher({
+  active,
+  onChange,
+  idPrefix = 'nav',
+}: {
+  active: ActiveModule;
+  onChange: (mod: ActiveModule) => void;
+  idPrefix?: string;
+}) {
+  const isPayout = active === 'payout';
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      onChange(isPayout ? 'ifsc' : 'payout');
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      onChange('payout');
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      onChange('ifsc');
+    }
+  };
+
   return (
-    <div className="grid w-full grid-cols-2 gap-1 rounded-xl border border-color-border bg-color-input p-1 text-center shadow-inner backdrop-blur-md sm:inline-flex sm:w-auto">
-      <button onClick={() => onChange('payout')} className={`${btnBase} ${payoutActive ? 'border border-brand/30 bg-brand/15 font-semibold text-brand shadow-sm' : 'font-medium text-sage hover:bg-color-hover hover:text-forest'}`}>
-        <CircleDollarSign size={14} />
+    <div
+      role="tablist"
+      aria-label="Workspace Module Selector"
+      onKeyDown={handleKeyDown}
+      className="relative flex w-full items-center rounded-xl bg-color-input p-1 shadow-inner backdrop-blur-md select-none sm:inline-flex sm:w-auto"
+    >
+      {/* Smooth sliding coral-red active indicator */}
+      <div
+        aria-hidden="true"
+        className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-lg pointer-events-none transition-transform duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none will-change-transform ${
+          isPayout ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        style={{
+          background: 'linear-gradient(135deg, rgba(255, 94, 104, 0.20) 0%, rgba(255, 94, 104, 0.10) 100%)',
+          border: '1px solid rgba(255, 94, 104, 0.35)',
+          boxShadow: '0 2px 10px -2px rgba(255, 94, 104, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
+        }}
+      />
+
+      {/* Payout Tab */}
+      <button
+        role="tab"
+        id={`${idPrefix}-tab-payout`}
+        aria-selected={isPayout}
+        aria-controls="panel-payout"
+        tabIndex={isPayout ? 0 : -1}
+        onClick={() => onChange('payout')}
+        type="button"
+        className={`relative z-10 flex flex-1 sm:flex-initial sm:min-w-[124px] items-center justify-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 active:scale-[0.98] ${
+          isPayout
+            ? 'font-semibold text-brand'
+            : 'font-medium text-sage hover:text-forest'
+        }`}
+      >
+        <CircleDollarSign size={14} className={`transition-colors duration-200 ${isPayout ? 'text-brand' : 'text-sage'}`} />
         <span>Payout</span>
       </button>
-      <button onClick={() => onChange('ifsc')} className={`${btnBase} ${!payoutActive ? 'border border-emerald-400/30 bg-emerald-500/15 font-semibold text-emerald-500 dark:text-emerald-300 shadow-sm' : 'font-medium text-sage hover:bg-color-hover hover:text-forest'}`}>
-        <ShieldCheck size={14} />
+
+      {/* IFSC Validator Tab */}
+      <button
+        role="tab"
+        id={`${idPrefix}-tab-ifsc`}
+        aria-selected={!isPayout}
+        aria-controls="panel-ifsc"
+        tabIndex={!isPayout ? 0 : -1}
+        onClick={() => onChange('ifsc')}
+        type="button"
+        className={`relative z-10 flex flex-1 sm:flex-initial sm:min-w-[124px] items-center justify-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 active:scale-[0.98] ${
+          !isPayout
+            ? 'font-semibold text-brand'
+            : 'font-medium text-sage hover:text-forest'
+        }`}
+      >
+        <ShieldCheck size={14} className={`transition-colors duration-200 ${!isPayout ? 'text-brand' : 'text-sage'}`} />
         <span>IFSC Validator</span>
       </button>
     </div>
@@ -430,12 +1023,45 @@ function ModuleSwitcher({ active, onChange }: { active: ActiveModule; onChange: 
 }
 
 function App() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('dsynq_auth') === 'true' || localStorage.getItem('dsynq_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [activeModule, setActiveModule] = useState<ActiveModule>('payout');
+  const [panelAnimClass, setPanelAnimClass] = useState<string>('');
   const [activeAffiliates, setActiveAffiliates] = useState(0);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const { canInstall, promptInstall, dismiss } = useInstallPrompt();
-  if (!authenticated) return <LoginScreen onAuthenticated={() => setAuthenticated(true)} />;
+
+  const handleLoginSuccess = () => {
+    try {
+      sessionStorage.setItem('dsynq_auth', 'true');
+    } catch {
+      // Storage unavailable fallback
+    }
+    setAuthenticated(true);
+  };
+
+  const handleSignOut = () => {
+    try {
+      sessionStorage.removeItem('dsynq_auth');
+      localStorage.removeItem('dsynq_auth');
+    } catch {
+      // Storage unavailable fallback
+    }
+    setAuthenticated(false);
+  };
+
+  const handleModuleChange = (mod: ActiveModule) => {
+    if (mod === activeModule) return;
+    setPanelAnimClass(mod === 'ifsc' ? 'dsynq-panel-slide-right' : 'dsynq-panel-slide-left');
+    setActiveModule(mod);
+  };
+
+  if (!authenticated) return <LoginScreen onAuthenticated={handleLoginSuccess} />;
 
   return (
     <div className="min-h-screen bg-canvas text-forest">
@@ -469,7 +1095,7 @@ function App() {
             </div>
             <div className="h-5 w-px bg-color-border mx-2 hidden md:block" />
             <div className="hidden md:block">
-              <ModuleSwitcher active={activeModule} onChange={setActiveModule} />
+              <ModuleSwitcher active={activeModule} onChange={handleModuleChange} idPrefix="desktop" />
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -481,23 +1107,38 @@ function App() {
               </span>
             </div>
             <ThemeSwitcher />
-            <button onClick={() => setAuthenticated(false)} aria-label="Sign out" className="dsynq-btn-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold">
+            <button onClick={handleSignOut} aria-label="Sign out" className="dsynq-btn-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold">
               <LogOut size={14} className="text-sage" />
               <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
           <div className="w-full md:hidden">
-            <ModuleSwitcher active={activeModule} onChange={setActiveModule} />
+            <ModuleSwitcher active={activeModule} onChange={handleModuleChange} idPrefix="mobile" />
           </div>
         </div>
       </nav>
-      {activeModule === 'payout' && (
-        <div key="payout" className="animate-in fade-in-50 slide-in-from-bottom-2 duration-300 ease-out">
+
+      {/* Main Workspace Panels with smooth directional slide and preserved state */}
+      <main className="relative min-h-[calc(100vh-65px)] overflow-x-clip">
+        <div
+          id="panel-payout"
+          role="tabpanel"
+          aria-labelledby="desktop-tab-payout"
+          className={activeModule === 'payout' ? panelAnimClass : 'hidden'}
+          style={{ display: activeModule === 'payout' ? 'block' : 'none' }}
+        >
           <PayoutView setActiveAffiliates={setActiveAffiliates} lastSync={lastSync} setLastSync={setLastSync} />
         </div>
-      )}
-      {activeModule === 'ifsc' && (
-        <div key="ifsc" className="mx-auto max-w-[1536px] animate-in fade-in-50 slide-in-from-bottom-2 px-4 py-5 duration-300 ease-out sm:px-6 lg:px-10 lg:py-8">
+
+        <div
+          id="panel-ifsc"
+          role="tabpanel"
+          aria-labelledby="desktop-tab-ifsc"
+          className={`mx-auto max-w-[1536px] px-4 py-5 sm:px-6 lg:px-10 lg:py-8 ${
+            activeModule === 'ifsc' ? panelAnimClass : 'hidden'
+          }`}
+          style={{ display: activeModule === 'ifsc' ? 'block' : 'none' }}
+        >
           <div className="mb-6 flex items-center gap-3.5">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-xl border border-color-border bg-[var(--c-surface)] p-2 shadow-sm">
               <DSynqLogo size="sm" interactive={false} className="h-full w-full" />
@@ -508,9 +1149,18 @@ function App() {
               <p className="mt-0.5 text-xs text-sage">powered by <strong className="font-semibold text-brand">DSynq</strong> · Batch-check bank branches before payout processing</p>
             </div>
           </div>
-          <BatchValidator />
+          <Suspense
+            fallback={
+              <div className="dsynq-card dsynq-card-rim flex min-h-[300px] flex-col items-center justify-center gap-3 p-8 text-center text-sage">
+                <Loader2 size={24} className="animate-spin text-brand" />
+                <p className="text-xs font-medium text-forest">Loading IFSC Validator...</p>
+              </div>
+            }
+          >
+            <BatchValidator />
+          </Suspense>
         </div>
-      )}
+      </main>
     </div>
   );
 }

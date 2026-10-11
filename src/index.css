@@ -477,6 +477,39 @@ button:hover .dsynq-logo[data-interactive="false"] {
 @keyframes pulse-dot { 0%, 100% { opacity: 0.6; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.15); } }
 .pulse-dot { animation: pulse-dot 2.2s ease-in-out infinite; }
 
+/* Workspace Module Switching Transitions */
+@keyframes dsynqSlideInRight {
+  0% {
+    opacity: 0;
+    transform: translate3d(20px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes dsynqSlideInLeft {
+  0% {
+    opacity: 0;
+    transform: translate3d(-20px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.dsynq-panel-slide-right {
+  animation: dsynqSlideInRight 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.dsynq-panel-slide-left {
+  animation: dsynqSlideInLeft 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-6px); }

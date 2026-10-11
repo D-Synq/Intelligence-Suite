@@ -34,38 +34,47 @@ const CONCURRENCY = 8;
 
 const memoryCache = new Map<string, IfscResult>();
 
-function loadDiskCache(): Record<string, IfscResult> {
+let diskCacheLoaded = false;
+let diskCache: Record<string, IfscResult> = {};
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function ensureDiskCacheLoaded(): void {
+  if (diskCacheLoaded) return;
   try {
     const raw = localStorage.getItem(CACHE_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, IfscResult>) : {};
+    diskCache = raw ? (JSON.parse(raw) as Record<string, IfscResult>) : {};
   } catch {
-    return {};
+    diskCache = {};
+  }
+  diskCacheLoaded = true;
+  for (const [k, v] of Object.entries(diskCache)) {
+    memoryCache.set(k, v);
   }
 }
 
-function saveDiskCache(disk: Record<string, IfscResult>): void {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(disk));
-  } catch {
-    // localStorage may be full or unavailable; memory cache still works
-  }
+function scheduleSaveDiskCache(): void {
+  if (saveTimeout) return;
+  saveTimeout = setTimeout(() => {
+    saveTimeout = null;
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(diskCache));
+    } catch {
+      // LocalStorage quota may be reached; memoryCache continues to serve
+    }
+  }, 200);
 }
 
 function cacheGet(code: string): IfscResult | undefined {
   if (memoryCache.has(code)) return memoryCache.get(code);
-  const disk = loadDiskCache();
-  if (disk[code]) {
-    memoryCache.set(code, disk[code]);
-    return disk[code];
-  }
-  return undefined;
+  ensureDiskCacheLoaded();
+  return memoryCache.get(code);
 }
 
 function cacheSet(result: IfscResult): void {
   memoryCache.set(result.code, result);
-  const disk = loadDiskCache();
-  disk[result.code] = result;
-  saveDiskCache(disk);
+  ensureDiskCacheLoaded();
+  diskCache[result.code] = result;
+  scheduleSaveDiskCache();
 }
 
 export function normalizeIfsc(code: string): string {

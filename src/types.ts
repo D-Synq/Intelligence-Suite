@@ -56,3 +56,28 @@ export type SyncResponse = {
   last_sync: string;
   source: string;
 };
+
+export type MasterRowPreview = {
+  code: string;
+  name: string;
+  plan: string;
+  plan_name: string;
+  ifsc: string;
+  kyc_status: KycStatus;
+  bank_holder_name: string;
+  account_number: string;
+  phone: string;
+};
+
+export type MasterParseResult = {
+  fileName: string;
+  fileSizeBytes: number;
+  sheets: string[];
+  selectedSheet: string;
+  detectedHeaders: string[];
+  validCount: number;
+  rejectedCount: number;
+  missingRequiredColumns: string[];
+  previewRows: MasterRowPreview[];
+  parsedEntries: Record<string, MasterRowPreview>;
+};
